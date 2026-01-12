@@ -17,18 +17,42 @@ final class EnvWriter
      */
     final public function update(array $values): void
     {
-        $content = File::exists($this->path) ? File::get($this->path) : '';
-        /** @var array<int, string> $lines */
-        $lines = explode("\n", $content);
+        $currentLines = $this->getExistingLines();
 
+        [$newContent, $processedKeys] = $this->processExistingLines($currentLines, $values);
+
+        $newContent = $this->appendNewKeys($newContent, $values, $processedKeys);
+
+        File::put($this->path, implode("\n", $newContent));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getExistingLines(): array
+    {
+        if (! File::exists($this->path)) {
+            return [];
+        }
+        $content = File::get($this->path);
+
+        return explode("\n", $content);
+    }
+
+    /**
+     * @param array<int, string> $lines
+     * @param array<string, mixed> $values
+     * @return array{0: array<int, string>, 1: array<int, string>}
+     */
+    private function processExistingLines(array $lines, array $values): array
+    {
         $newContent = [];
         $processedKeys = [];
 
         foreach ($lines as $line) {
             $line = trim($line);
 
-            // Skip comments and empty lines
-            if (empty($line) || str_starts_with($line, '#')) {
+            if ($this->shouldSkipLine($line)) {
                 $newContent[] = $line;
 
                 continue;
@@ -37,29 +61,48 @@ final class EnvWriter
             $parts = explode('=', $line, 2);
             $key = trim($parts[0]);
 
-            if (\array_key_exists($key, $values)) {
+            if (array_key_exists($key, $values)) {
                 $val = $this->formatValue($values[$key]);
                 $newContent[] = "{$key}={$val}";
                 $processedKeys[] = $key;
             } else {
-                $newContent[] = $line; // Keep existing
+                $newContent[] = $line;
             }
         }
 
-        // Append new keys
-        $addedAny = false;
+        return [$newContent, $processedKeys];
+    }
+
+    private function shouldSkipLine(string $line): bool
+    {
+        return empty($line) || str_starts_with($line, '#');
+    }
+
+    /**
+     * @param array<int, string> $content
+     * @param array<string, mixed> $values
+     * @param array<int, string> $processedKeys
+     * @return array<int, string>
+     */
+    private function appendNewKeys(array $content, array $values, array $processedKeys): array
+    {
+        $addedSpacing = false;
+
         foreach ($values as $key => $value) {
-            if (! in_array($key, $processedKeys, true)) {
-                if (! $addedAny && ! empty($newContent)) {
-                    $newContent[] = ''; // Add spacing before new block
-                    $addedAny = true;
-                }
-                $val = $this->formatValue($value);
-                $newContent[] = "{$key}={$val}";
+            if (in_array($key, $processedKeys, true)) {
+                continue;
             }
+
+            if (! $addedSpacing && ! empty($content)) {
+                $content[] = '';
+                $addedSpacing = true;
+            }
+
+            $val = $this->formatValue($value);
+            $content[] = "{$key}={$val}";
         }
 
-        File::put($this->path, implode("\n", $newContent));
+        return $content;
     }
 
     private function formatValue(mixed $value): string
