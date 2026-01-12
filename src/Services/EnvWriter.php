@@ -40,8 +40,8 @@ final class EnvWriter
     }
 
     /**
-     * @param array<int, string> $lines
-     * @param array<string, mixed> $values
+     * @param  array<int, string>  $lines
+     * @param  array<string, mixed>  $values
      * @return array{0: array<int, string>, 1: array<int, string>}
      */
     private function processExistingLines(array $lines, array $values): array
@@ -79,9 +79,9 @@ final class EnvWriter
     }
 
     /**
-     * @param array<int, string> $content
-     * @param array<string, mixed> $values
-     * @param array<int, string> $processedKeys
+     * @param  array<int, string>  $content
+     * @param  array<string, mixed>  $values
+     * @param  array<int, string>  $processedKeys
      * @return array<int, string>
      */
     private function appendNewKeys(array $content, array $values, array $processedKeys): array

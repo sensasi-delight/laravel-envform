@@ -8,12 +8,12 @@ use Illuminate\Support\Collection;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-final class ConfigScanner
+final class ConfigAnalyzer
 {
     private const ENV_PATTERN = "/env\(\s*['\"]([A-Z0-9_]+)['\"](?:\s*,\s*(['\"](.*?)['\"]|[^)]+))?\s*\)/";
 
     /**
-     * Scan config directory for env() calls.
+     * Analyze config directory for env() calls.
      *
      * @return Collection<string, array{
      *  key: string,
@@ -23,7 +23,7 @@ final class ConfigScanner
      *  group: string
      * }>
      */
-    final public function scan(string $configPath): Collection
+    final public function analyze(string $configPath): Collection
     {
         $files = Finder::create()
             ->files()

@@ -1,7 +1,7 @@
 {
     "name": "envform/laravel-envform",
     "version": "0.0.1",
-    "description": "Interactive .env file generator and manager for Laravel applications using config scanning.",
+    "description": "Interactive .env file generator and manager for Laravel applications using project analysis.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -13,7 +13,7 @@
         "interactive",
         "setup",
         "wizard",
-        "scanner",
+        "analyzer",
         "generator"
     ],
     "authors": [

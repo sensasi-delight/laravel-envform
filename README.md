@@ -5,7 +5,7 @@
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0-ff2d20.svg)
 
 > **Stop guessing your environment variables.**  
-> Automatically generate your `.env` file by scanning your configuration files interactively.
+> Automatically generate your `.env` file by analyzing your configuration files interactively.
 
 ---
 
@@ -20,6 +20,9 @@ As a Laravel developer, you juggle multiple environments (Local, Testing, Stagin
 - You make a typo, and the app crashes 💥.
 
 It's **repetitive**, **boring**, and **error-prone**.
+
+**The Solution:**
+**Laravel EnvForm** automates the detective work. It analyzes your config files for the *actual* truth (`env()` calls) and guides you through a safe, interactive setup wizard. No more guessing.
 
 ## 💡 The "All-in-One" Philosophy
 
@@ -37,7 +40,7 @@ With **EnvForm**, you get the best of both worlds: a lean config and a fully-doc
 
 ## ✨ Features
 
-- **🔍 Smart Scanning**: Automatically finds `env('KEY', 'default')` usage in your `config` directory.
+- **🔍 Smart Analysis**: Automatically finds `env('KEY', 'default')` usage in your `config` directory.
 - **💅 Interactive UI**: Built with [Laravel Prompts](https://laravel.com/docs/prompts) for a sleek, modern developer experience.
 - **🧠 Context Aware**:
   - Automatically suggests generating `APP_KEY` if missing.
@@ -70,24 +73,37 @@ php artisan envform
 
 ### The Process
 
-1. **Scan**: The command scans your `config/` folder.
+1. **Analyze**: The command analyzes your `config/` folder.
 2. **Select**: Choose which config group you want to edit (e.g., `database`).
 3. **Input**: Fill in the values. The tool shows you the key, description, and default value.
 4. **Save**: Review your progress and save to `.env` when done.
 
 ---
 
+## 🔒 Security & Privacy
+
+We understand that `.env` files contain sensitive information. **Laravel EnvForm** is built with a "Privacy First" architecture:
+
+- **100% Local Processing**: All analysis and file writing happen entirely on your local machine.
+- **No Outbound Connections**: This package has **zero** HTTP dependencies (no Guzzle, no Curl). It cannot and does not send your data to any external server.
+- **Static Analysis Only**: We use RegEx-based static analysis to read your `config/*.php` files. We never execute your code or load your environment into memory in a way that could be exported.
+- **Transparent Execution**: The source code is open and intentionally kept simple so you can audit it yourself.
+
+---
+
 ## 🤖 How It Works
 
-EnvForm uses static analysis (RegEx) to parse your PHP configuration files. It looks for the standard Laravel `env()` helper pattern:
+EnvForm performs a **Local Static Analysis** using RegEx to parse your PHP configuration files. It looks for the standard Laravel `env()` helper pattern:
 
 ```php
 // config/app.php
 'name' => env('APP_NAME', 'Laravel'),
 ```
 
-It extracts:
+The tool:
 
-- **Key**: `APP_NAME`
-- **Default**: `'Laravel'`
-- **Context**: Infers descriptions based on key names (e.g., keys containing `_PASSWORD` are identified as secrets).
+1. **Analyzes** your `config/` directory.
+2. **Extracts** keys and default values.
+3. **Merges** them with your existing `.env` values (if any).
+4. **Interactively** prompts you for updates.
+5. **Writes** the final result back to your project root.

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Console\Commands;
 
-use EnvForm\Services\ConfigScanner;
+use EnvForm\Services\ConfigAnalyzer;
 use EnvForm\Services\EnvWriter;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
@@ -30,7 +30,7 @@ final class Main extends Command
     /**
      * @var string
      */
-    protected $description = 'Interactively manage .env file based on config scanning.';
+    protected $description = 'Interactively manage .env file based on project analysis.';
 
     /** @var array<string, string> */
     private array $existingEnv = [];
@@ -40,7 +40,7 @@ final class Main extends Command
 
     private string $targetEnvFile = '.env';
 
-    final public function handle(ConfigScanner $scanner): int
+    final public function handle(ConfigAnalyzer $analyzer): int
     {
         $this->displayWelcome();
 
@@ -50,7 +50,7 @@ final class Main extends Command
         $configPath = App::configPath();
         $this->info("🔍 Analyzing project configuration in: {$configPath}...");
 
-        $allKeys = $scanner->scan($configPath);
+        $allKeys = $analyzer->analyze($configPath);
 
         if ($allKeys->isEmpty()) {
             warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
@@ -80,7 +80,8 @@ final class Main extends Command
     private function displayWelcome(): void
     {
         info('🚀 Welcome to Laravel EnvForm!');
-        note('💡 Analyzing local project configuration to help you set up your environment variables.');
+        note('💡 LOCAL ANALYSIS: This tool scans your config directory locally and writes directly to your .env file.');
+        note('🔒 PRIVACY: No data is sent to external servers. All processing stays on your machine.');
     }
 
     private function selectEnvFile(): string
@@ -169,7 +170,7 @@ final class Main extends Command
     }
 
     /**
-     * @param Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}> $keys
+     * @param  Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}>  $keys
      */
     private function configureGroup(string $groupName, Collection $keys): void
     {
