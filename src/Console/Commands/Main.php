@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
+use Symfony\Component\Finder\Finder;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
@@ -37,12 +38,17 @@ final class Main extends Command
     /** @var array<string, mixed> */
     private array $collectedValues = [];
 
+    private string $targetEnvFile = '.env';
+
     final public function handle(ConfigScanner $scanner): int
     {
         $this->displayWelcome();
 
+        // 1. Select Target Environment File
+        $this->targetEnvFile = $this->selectEnvFile();
+
         $configPath = App::configPath();
-        $this->info("🔍 Scanning configuration files in: {$configPath}...");
+        $this->info("🔍 Analyzing project configuration in: {$configPath}...");
 
         $allKeys = $scanner->scan($configPath);
 
@@ -54,7 +60,16 @@ final class Main extends Command
 
         note("✨ Found {$allKeys->count()} potential environment variables to configure.");
 
-        $this->existingEnv = $this->getCurrentEnv(App::basePath('.env'));
+        // 2. Load Existing Env
+        $envPath = App::basePath($this->targetEnvFile);
+        if (file_exists($envPath)) {
+            note("📖 Loading existing values from [{$this->targetEnvFile}]...");
+            $this->existingEnv = $this->getCurrentEnv($envPath);
+        } else {
+            note("🆕 File [{$this->targetEnvFile}] does not exist. Creating a new one.");
+            $this->existingEnv = [];
+        }
+
         $groupedKeys = $allKeys->groupBy('group')->sortKeys();
 
         $this->runInteractiveLoop($groupedKeys);
@@ -65,7 +80,41 @@ final class Main extends Command
     private function displayWelcome(): void
     {
         info('🚀 Welcome to Laravel EnvForm!');
-        note('💡 We will scan your config files and help you set up your environment variables interactively.');
+        note('💡 Analyzing local project configuration to help you set up your environment variables.');
+    }
+
+    private function selectEnvFile(): string
+    {
+        $files = Finder::create()
+            ->files()
+            ->in(App::basePath())
+            ->name('.env*')
+            ->depth(0)
+            ->ignoreDotFiles(false);
+
+        $options = [];
+        foreach ($files as $file) {
+            $options[$file->getFilename()] = $file->getFilename();
+        }
+
+        // Add option for new file
+        $options['NEW'] = '➕ Create New File...';
+
+        $choice = select(
+            label: '📂 Which environment file do you want to manage?',
+            options: $options,
+            default: '.env'
+        );
+
+        if ($choice === 'NEW') {
+            return text(
+                label: '🆕 Enter the name of the new environment file:',
+                default: '.env.local',
+                hint: 'e.g. .env.testing, .env.staging'
+            );
+        }
+
+        return (string) $choice;
     }
 
     /**
@@ -241,7 +290,7 @@ final class Main extends Command
 
         $filename = text(
             label: '📄 Enter the output filename:',
-            default: '.env',
+            default: $this->targetEnvFile,
             hint: 'The file will be saved in the project root.'
         );
 
