@@ -38,6 +38,9 @@ final class Main extends Command
     /** @var array<string, mixed> */
     private array $collectedValues = [];
 
+    /** @var Collection<string, array{key: string, default: mixed, file: string, description: string, group: string}> */
+    private Collection $allKeys;
+
     private string $targetEnvFile = '.env';
 
     final public function handle(ConfigAnalyzer $analyzer): int
@@ -50,15 +53,15 @@ final class Main extends Command
         $configPath = App::configPath();
         $this->info("🔍 Analyzing project configuration in: {$configPath}...");
 
-        $allKeys = $analyzer->analyze($configPath);
+        $this->allKeys = $analyzer->analyze($configPath);
 
-        if ($allKeys->isEmpty()) {
+        if ($this->allKeys->isEmpty()) {
             warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
 
             return self::FAILURE;
         }
 
-        note("✨ Found {$allKeys->count()} potential environment variables to configure.");
+        note("✨ Found {$this->allKeys->count()} potential environment variables to configure.");
 
         // 2. Load Existing Env
         $envPath = App::basePath($this->targetEnvFile);
@@ -70,7 +73,7 @@ final class Main extends Command
             $this->existingEnv = [];
         }
 
-        $groupedKeys = $allKeys->groupBy('group')->sortKeys();
+        $groupedKeys = $this->allKeys->groupBy('group')->sortKeys();
 
         $this->runInteractiveLoop($groupedKeys);
 
@@ -306,7 +309,10 @@ final class Main extends Command
         }
 
         $writer = new EnvWriter($targetPath);
-        $writer->update($this->collectedValues);
+        $writer->update(
+            $this->collectedValues,
+            $this->allKeys->pluck('group', 'key')->toArray()
+        );
         info("✅ Successfully updated {$filename} file!");
 
         return self::SUCCESS;
