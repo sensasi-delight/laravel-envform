@@ -42,17 +42,17 @@ final class Main extends Command
         $this->displayWelcome();
 
         $configPath = App::configPath();
-        $this->info("Scanning {$configPath}...");
+        $this->info("🔍 Scanning configuration files in: {$configPath}...");
 
         $allKeys = $scanner->scan($configPath);
 
         if ($allKeys->isEmpty()) {
-            warning('No env() calls found in config/*.php');
+            warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
 
             return self::FAILURE;
         }
 
-        note("Found {$allKeys->count()} potential environment variables.");
+        note("✨ Found {$allKeys->count()} potential environment variables to configure.");
 
         $this->existingEnv = $this->getCurrentEnv(App::basePath('.env'));
         $groupedKeys = $allKeys->groupBy('group')->sortKeys();
@@ -64,12 +64,12 @@ final class Main extends Command
 
     private function displayWelcome(): void
     {
-        info('Welcome to Laravel EnvForm! 🚀');
-        note('We will scan your config files and help you set up your environment variables.');
+        info('🚀 Welcome to Laravel EnvForm!');
+        note('💡 We will scan your config files and help you set up your environment variables interactively.');
     }
 
     /**
-     * @param  Collection<string, Collection>  $groupedKeys
+     * @param  Collection<string, Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}>>  $groupedKeys
      */
     private function runInteractiveLoop(Collection $groupedKeys): void
     {
@@ -77,7 +77,7 @@ final class Main extends Command
             $menuOptions = $this->buildMenuOptions($groupedKeys);
 
             $selectedGroup = select(
-                label: 'Select a configuration file to configure:',
+                label: '📂 Select a configuration file to configure:',
                 options: $menuOptions,
                 default: 'EXIT',
                 scroll: 15
@@ -87,14 +87,14 @@ final class Main extends Command
                 break;
             }
 
-            /** @var Collection $keys */
+            /** @var Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}> $keys */
             $keys = $groupedKeys[$selectedGroup];
-            $this->configureGroup($selectedGroup, $keys);
+            $this->configureGroup((string) $selectedGroup, $keys);
         }
     }
 
     /**
-     * @param  Collection<string, Collection>  $groupedKeys
+     * @param  Collection<string, Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}>>  $groupedKeys
      * @return array<string, string>
      */
     private function buildMenuOptions(Collection $groupedKeys): array
@@ -119,9 +119,12 @@ final class Main extends Command
         return $menuOptions;
     }
 
+    /**
+     * @param Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}> $keys
+     */
     private function configureGroup(string $groupName, Collection $keys): void
     {
-        info("Configuring {$groupName}...");
+        info("🛠️  Configuring settings for: {$groupName}");
 
         foreach ($keys as $meta) {
             /** @var array{key: string, description: string, default: mixed} $meta */
@@ -144,7 +147,7 @@ final class Main extends Command
         $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
         $defaultValue = $meta['default'];
 
-        $label = $keyName;
+        $label = "👉 {$keyName}";
         $hint = $meta['description'];
 
         if ($defaultValue !== null) {
@@ -183,7 +186,7 @@ final class Main extends Command
     {
         if ($keyName === 'APP_KEY') {
             $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
-            if (confirm('Do you want to generate/regenerate APP_KEY?', default: empty($currentValue))) {
+            if (confirm('🔑 Do you want to generate/regenerate APP_KEY?', default: empty($currentValue))) {
                 Artisan::call('key:generate', ['--show' => true]);
                 $this->collectedValues[$keyName] = trim(Artisan::output());
 
@@ -214,7 +217,7 @@ final class Main extends Command
 
                 if (! empty($defaultSelect)) {
                     $this->collectedValues[$keyName] = select(
-                        label: $keyName,
+                        label: "🔌 {$keyName}",
                         options: $connections,
                         default: $defaultSelect,
                         hint: $meta['description']
@@ -231,13 +234,13 @@ final class Main extends Command
     private function saveChanges(): int
     {
         if (empty($this->collectedValues)) {
-            warning('No changes to save.');
+            warning('⚠️  No changes to save.');
 
             return self::SUCCESS;
         }
 
         $filename = text(
-            label: 'Enter the output filename:',
+            label: '📄 Enter the output filename:',
             default: '.env',
             hint: 'The file will be saved in the project root.'
         );
@@ -245,8 +248,8 @@ final class Main extends Command
         $targetPath = App::basePath($filename);
 
         if (file_exists($targetPath)) {
-            if (! confirm("File [{$filename}] already exists. Do you want to overwrite it?", default: false)) {
-                warning('Operation cancelled.');
+            if (! confirm("⚠️  File [{$filename}] already exists. Do you want to overwrite it?", default: false)) {
+                warning('❌ Operation cancelled.');
 
                 return self::SUCCESS;
             }
@@ -254,7 +257,7 @@ final class Main extends Command
 
         $writer = new EnvWriter($targetPath);
         $writer->update($this->collectedValues);
-        info("Successfully updated {$filename} file!");
+        info("✅ Successfully updated {$filename} file!");
 
         return self::SUCCESS;
     }
