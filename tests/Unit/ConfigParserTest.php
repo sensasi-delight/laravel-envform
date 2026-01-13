@@ -44,10 +44,10 @@ EOT;
         $this->assertCount(2, $result);
 
         $name = $result->firstWhere('key', 'APP_NAME');
-        $this->assertEquals('app.name', $name['config_path']);
+        $this->assertEquals('app.name', $name->configPath);
 
         $debug = $result->firstWhere('key', 'APP_DEBUG');
-        $this->assertEquals('app.debug', $debug['config_path']);
+        $this->assertEquals('app.debug', $debug->configPath);
     }
 
     public function test_it_parses_nested_config_arrays(): void
@@ -70,9 +70,9 @@ EOT;
         $result = $parser->parse($this->tempDir);
 
         $store = $result->firstWhere('key', 'CACHE_STORE');
-        $this->assertEquals('cache.default', $store['config_path']);
+        $this->assertEquals('cache.default', $store->configPath);
 
         $redis = $result->firstWhere('key', 'REDIS_CACHE_CONNECTION');
-        $this->assertEquals('cache.stores.redis.connection', $redis['config_path']);
+        $this->assertEquals('cache.stores.redis.connection', $redis->configPath);
     }
 }

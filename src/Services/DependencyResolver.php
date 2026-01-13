@@ -10,45 +10,7 @@ use Illuminate\Support\Collection;
 final class DependencyResolver
 {
     /**
-     * Rules definition:
-     * 'config.path' => [
-     *    'value' => ['dependent.config.path.wildcard.*']
-     * ]
-     *
-     * @var array<string, array<string, array<int, string>>>
-     */
-    private const RULES = [
-        'cache.default' => [
-            'redis' => ['cache.stores.redis.*', 'database.redis.*'],
-            'memcached' => ['cache.stores.memcached.*'],
-            'dynamodb' => ['cache.stores.dynamodb.*', 'services.dynamodb.*'],
-        ],
-        'database.default' => [
-            'mysql' => ['database.connections.mysql.*'],
-            'pgsql' => ['database.connections.pgsql.*'],
-            'sqlsrv' => ['database.connections.sqlsrv.*'],
-            'mariadb' => ['database.connections.mariadb.*'],
-            'sqlite' => ['database.connections.sqlite.*'],
-        ],
-        'queue.default' => [
-            'database' => ['queue.connections.database.*'],
-            'beanstalkd' => ['queue.connections.beanstalkd.*'],
-            'sqs' => ['queue.connections.sqs.*', 'services.sqs.*'],
-            'redis' => ['queue.connections.redis.*'],
-        ],
-        'mail.default' => [
-            'smtp' => ['mail.mailers.smtp.*'],
-            'ses' => ['mail.mailers.ses.*', 'services.ses.*'],
-            'mailgun' => ['mail.mailers.mailgun.*', 'services.mailgun.*'],
-            'postmark' => ['mail.mailers.postmark.*', 'services.postmark.*'],
-        ],
-        'filesystem.default' => [
-            's3' => ['filesystems.disks.s3.*', 'services.s3.*'],
-        ],
-    ];
-
-    /**
-     * @param  Collection<string, EnvKeyDefinition>  $parsedConfig
+     * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
      * @param  array<string, mixed>  $currentValues
      */
     public function shouldAsk(string $envKey, Collection $parsedConfig, array $currentValues): bool
@@ -58,12 +20,9 @@ final class DependencyResolver
             return true;
         }
 
-        $paths = $item->configPaths;
-        if (empty($paths) && ! empty($item->configPath)) {
-            $paths = [$item->configPath];
-        }
+        $paths = $this->resolveConfigPaths($item);
 
-        if (empty($paths) || (count($paths) === 1 && empty($paths[0]))) {
+        if (empty($paths)) {
             return true;
         }
 
@@ -78,60 +37,9 @@ final class DependencyResolver
     }
 
     /**
-     * @param  Collection<string, EnvKeyDefinition>  $parsedConfig
-     * @param  array<string, mixed>  $currentValues
-     */
-    private function isPathActive(string $configPath, Collection $parsedConfig, array $currentValues): bool
-    {
-        if (empty($configPath)) {
-            return true;
-        }
-
-        // Check explicit allow rules
-        foreach (self::RULES as $triggerPath => $conditions) {
-            $triggerItem = $parsedConfig->firstWhere('configPath', $triggerPath);
-
-            if ($triggerItem) {
-                $triggerKey = $triggerItem->key;
-                $triggerValue = $currentValues[$triggerKey] ?? null;
-
-                if ($triggerValue) {
-                    foreach ($conditions as $expectedValue => $patterns) {
-                        if ($this->matchesPatterns($configPath, $patterns)) {
-                            // This rule governs this path.
-                            // It matches the pattern.
-                            // Valid only if value matches expected.
-                            return (string) $triggerValue === (string) $expectedValue;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Check implicit deny (if it matches a rule pattern but not the one selected above)
-        foreach (self::RULES as $triggerPath => $conditions) {
-            foreach ($conditions as $expectedValue => $patterns) {
-                if ($this->matchesPatterns($configPath, $patterns)) {
-                    // It matches a restrictive pattern (e.g. 'cache.stores.redis.*')
-                    // But we didn't return true above.
-                    // This means either:
-                    // 1. Trigger key not found (fallback to allow? No, usually hidden)
-                    // 2. Trigger value not set (fallback to allow? No)
-                    // 3. Trigger value set to something else (e.g. 'database')
-
-                    // If it matches a restrictive pattern, it defaults to HIDDEN unless explicitly allowed above.
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Check if the given Env Key is a trigger for other dependencies.
      *
-     * @param  Collection<string, EnvKeyDefinition>  $parsedConfig
+     * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
      */
     public function isTrigger(string $envKey, Collection $parsedConfig): bool
     {
@@ -140,15 +48,93 @@ final class DependencyResolver
             return false;
         }
 
-        // match existing logic
-        $paths = $item->configPaths;
-        if (empty($paths) && ! empty($item->configPath)) {
-            $paths = [$item->configPath];
-        }
+        $paths = $this->resolveConfigPaths($item);
+        $rules = DependencyRules::getRules();
 
         foreach ($paths as $path) {
-            if (array_key_exists($path, self::RULES)) {
+            if (array_key_exists($path, $rules)) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
+     * @param  array<string, mixed>  $currentValues
+     */
+    private function isPathActive(string $configPath, Collection $parsedConfig, array $currentValues): bool
+    {
+        if (empty($configPath)) {
+            return true;
+        }
+
+        $rules = DependencyRules::getRules();
+
+        // 1. Check if an explicit rule allows this path
+        if ($this->isExplicitlyAllowed($configPath, $rules, $parsedConfig, $currentValues)) {
+            return true;
+        }
+
+        // 2. Check if an implicit rule denies this path (i.e. it falls under a governed area but wasn't allowed)
+        if ($this->isImplicitlyDenied($configPath, $rules)) {
+            return false;
+        }
+
+        // 3. Default allow
+        return true;
+    }
+
+    /**
+     * @param array<string, array<string, array<int, string>>> $rules
+     * @param Collection<int, EnvKeyDefinition> $parsedConfig
+     * @param array<string, mixed> $currentValues
+     */
+    private function isExplicitlyAllowed(
+        string $configPath, 
+        array $rules, 
+        Collection $parsedConfig, 
+        array $currentValues
+    ): bool {
+        foreach ($rules as $triggerPath => $conditions) {
+            $triggerItem = $parsedConfig->firstWhere('configPath', $triggerPath);
+            
+            if (! $triggerItem) {
+                continue;
+            }
+
+            $triggerKey = $triggerItem->key;
+            $triggerValue = $currentValues[$triggerKey] ?? null;
+
+            if (! $triggerValue) {
+                continue;
+            }
+
+            foreach ($conditions as $expectedValue => $patterns) {
+                // If the path matches the pattern for this condition
+                // AND the trigger value matches the expected value, it is allowed.
+                if ($this->matchesPatterns($configPath, $patterns) && (string) $triggerValue === (string) $expectedValue) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, array<string, array<int, string>>> $rules
+     */
+    private function isImplicitlyDenied(string $configPath, array $rules): bool
+    {
+        foreach ($rules as $conditions) {
+            foreach ($conditions as $patterns) {
+                if ($this->matchesPatterns($configPath, $patterns)) {
+                    // It matches a restrictive pattern, but wasn't explicitly allowed above.
+                    // Therefore it is hidden/denied.
+                    return true;
+                }
             }
         }
 
@@ -167,5 +153,20 @@ final class DependencyResolver
         }
 
         return false;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function resolveConfigPaths(EnvKeyDefinition $item): array
+    {
+        $paths = $item->configPaths;
+        
+        // Fallback to legacy single configPath if empty, though DTO should handle this.
+        if (empty($paths) && ! empty($item->configPath)) {
+            $paths = [$item->configPath];
+        }
+
+        return array_filter($paths);
     }
 }
