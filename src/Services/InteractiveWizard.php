@@ -15,9 +15,13 @@ use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
+/**
+ * @phpstan-type EnvValue bool|int|string|null
+ * @phpstan-type CollectedValues array<string, EnvValue>
+ */
 final class InteractiveWizard
 {
-    /** @var array<string, mixed> */
+    /** @var CollectedValues */
     private array $collectedValues = [];
 
     /**
@@ -31,7 +35,7 @@ final class InteractiveWizard
     ) {}
 
     /**
-     * @return array<string, mixed>
+     * @return CollectedValues
      */
     public function run(): array
     {

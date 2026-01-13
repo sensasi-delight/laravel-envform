@@ -28,7 +28,11 @@ final class ConfigParser
         $foundItems = collect();
 
         foreach ($files as $file) {
-            $this->parseFile($file, $parser, $foundItems);
+            $this->parseFile(
+                $file,
+                $parser,
+                $foundItems
+            );
         }
 
         return $foundItems;
@@ -38,8 +42,11 @@ final class ConfigParser
      * @param  \PhpParser\Parser  $parser
      * @param  \Illuminate\Support\Collection<string, array{key: string, config_path: string, file: string}>  $foundItems
      */
-    private function parseFile(SplFileInfo $file, $parser, Collection $foundItems): void
-    {
+    private function parseFile(
+        SplFileInfo $file,
+        $parser,
+        Collection $foundItems
+    ): void {
         try {
             $stmts = $parser->parse($file->getContents());
             if ($stmts === null) {
@@ -58,6 +65,7 @@ final class ConfigParser
 
             public function __construct(
                 private readonly string $filename,
+
                 /** @var Collection<string, array{key: string, config_path: string, file: string}> */
                 private readonly Collection $foundItems
             ) {}

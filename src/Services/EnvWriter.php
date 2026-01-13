@@ -6,6 +6,9 @@ namespace EnvForm\Services;
 
 use Illuminate\Support\Facades\File;
 
+/**
+ * @phpstan-type EnvValue bool|int|string|null
+ */
 final class EnvWriter
 {
     final public function __construct(
@@ -13,7 +16,7 @@ final class EnvWriter
     ) {}
 
     /**
-     * @param  array<string, mixed>  $values
+     * @param  array<string, EnvValue>  $values
      * @param  array<string, string>  $metadata
      */
     final public function update(array $values, array $metadata = []): void
@@ -81,13 +84,16 @@ final class EnvWriter
         return $values;
     }
 
-    private function formatValue(mixed $value): string
+    /**
+     * @param  EnvValue  $value
+     */
+    private function formatValue($value): string
     {
-        if (is_bool($value)) {
+        if (\is_bool($value)) {
             return $value ? 'true' : 'false';
         }
 
-        if (is_null($value)) {
+        if (\is_null($value)) {
             return 'null';
         }
 
