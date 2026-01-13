@@ -10,11 +10,16 @@ use Illuminate\Support\Collection;
 final class DependencyResolver
 {
     /**
+     * Filter out any keys that shouldn't be asked for.
+     *
      * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
      * @param  array<string, mixed>  $currentValues
      */
-    final public function shouldAsk(string $envKey, Collection $parsedConfig, array $currentValues): bool
-    {
+    final public function shouldAsk(
+        string $envKey,
+        Collection $parsedConfig,
+        array $currentValues
+    ): bool {
         $item = $parsedConfig->firstWhere('key', $envKey);
 
         if (! $item) {
@@ -29,7 +34,13 @@ final class DependencyResolver
 
         // If ANY usage path is active, we ask for the key.
         foreach ($paths as $path) {
-            if ($this->isPathActive((string) $path, $parsedConfig, $currentValues)) {
+            if (
+                $this->isPathActive(
+                    (string) $path,
+                    $parsedConfig,
+                    $currentValues
+                )
+            ) {
                 return true;
             }
         }

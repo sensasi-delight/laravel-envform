@@ -125,8 +125,11 @@ final class InteractiveWizard
             return;
         }
 
-        // Skip if special handling took care of it
-        if ($this->handleSpecialKeys($keyName, $meta)) {
+        if (
+            $this->handleAppKey($keyName) ||
+            $this->handleDbConnection($meta) ||
+            $this->handleEnvKeyWithStrictOptions($meta)
+        ) {
             return;
         }
 
@@ -143,7 +146,7 @@ final class InteractiveWizard
 
         $initial = $currentValue ?? $defaultValue;
 
-        if (is_bool($defaultValue)) {
+        if (\is_bool($defaultValue)) {
             $boolInitial = $initial;
             if (is_string($initial)) {
                 $boolInitial = strtolower($initial) === 'true';
@@ -165,95 +168,122 @@ final class InteractiveWizard
         );
     }
 
-    private function handleSpecialKeys(string $keyName, EnvKeyDefinition $meta): bool
+    private function handleAppKey(string $keyName): bool
     {
-        if ($keyName === 'APP_KEY') {
-            $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
-            if (confirm(
-                label: '🔑 Do you want to generate/regenerate APP_KEY?',
-                default: empty($currentValue)
-            )) {
-                Artisan::call(
-                    command: 'key:generate',
-                    parameters: ['--show' => true]
-                );
-
-                $this->collectedValues[$keyName] = trim(
-                    string: Artisan::output()
-                );
-
-                return true;
-            }
-
+        if ($keyName !== 'APP_KEY') {
             return false;
         }
 
-        $configMap = collect([
-            [
-                'config_path' => 'database.default',
-                'env_key_pattern' => '/^DB_(.*)_CONNECTION$/',
-                'config_key_options_ref' => 'database.connections',
-            ],
-            // 'queue.default' => 'queue.stores',
-            // 'broadcast.default' => 'broadcasting.connections',
-            [
-                'config_path' => 'cache.default',
-                'env_key_pattern' => null,
-                'config_key_options_ref' => 'cache.stores',
-            ],
-            // 'cache.default' => 'cache.stores',
-            // 'filesystem.default' => 'filesystem.disks',
-        ]);
+        $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
 
-        $keyConfigPath = $meta->configPath;
-
-        if (
-            $foundConfigKey = $configMap->first(
-                callback: fn (
-                    array $item
-                ) => $keyConfigPath === $item['config_path'] || (
-                    $item['env_key_pattern'] !== null &&
-                    preg_match(
-                        pattern: $item['env_key_pattern'],
-                        subject: $keyName
-                    ))
-            )
-        ) {
-            /** @var array<int, string> $options */
-            $options = array_map('strval', array_keys(
-                array: Config::get(
-                    key: $foundConfigKey['config_key_options_ref'],
-                    default: []
-                )
-            ));
-
-            if (! empty($options)) {
-                $currentValue = $this->collectedValues[$keyName] ?? Config::get($keyConfigPath) ?? $this->existingEnv[$keyName] ?? null;
-                $initial = $currentValue ?? $meta->default;
-
-                $defaultSelect = (string) $initial;
-                if (! \in_array(
-                    needle: $defaultSelect,
-                    haystack: $options,
-                    strict: true
-                )) {
-                    $defaultSelect = $options[0];
-                }
-
-                if (! empty($defaultSelect)) {
-                    $this->collectedValues[$keyName] = select(
-                        label: "🔌 {$keyName}",
-                        options: $options,
-                        default: $defaultSelect,
-                        hint: $meta->description,
-                        scroll: \count($options)
-                    );
-
-                    return true;
-                }
-            }
+        if (! confirm(
+            label: '🔑 Do you want to generate/regenerate APP_KEY?',
+            default: empty($currentValue)
+        )) {
+            return false;
         }
 
-        return false;
+        Artisan::call(
+            command: 'key:generate',
+            parameters: ['--show' => true]
+        );
+
+        $this->collectedValues[$keyName] = trim(
+            string: Artisan::output()
+        );
+
+        return true;
+    }
+
+    private function handleEnvKeyWithStrictOptions(
+        EnvKeyDefinition $ekd
+    ): bool {
+        /**
+         * [config path => config path option ref]
+         *
+         * @var array<string, string>
+         */
+        $configPathOptionRefs = [
+            'broadcast.default' => 'broadcasting.connections',
+            'cache.default' => 'cache.stores',
+            'queue.default' => 'queue.stores',
+            'filesystem.default' => 'filesystem.disks',
+        ];
+
+        if (! isset($configPathOptionRefs[$ekd->configPath])) {
+            return false;
+        }
+
+        $configAdditionalOptions = [
+            'cache.default' => ['null'],
+        ];
+
+        $this->collectedValues[$ekd->key] = $this->buildSelect(
+            label: "🔌 {$ekd->key}",
+            configPathForOptions: $configPathOptionRefs[$ekd->configPath],
+            envKeyDefinition: $ekd,
+            additionalOptions: $configAdditionalOptions[$ekd->configPath] ?? []
+        );
+
+        return true;
+    }
+
+    private function handleDbConnection(
+        EnvKeyDefinition $ekd
+    ): bool {
+        if (
+            $ekd->configPath !== 'database.default' &&
+            ! preg_match(
+                pattern: '/^DB_(.*)_CONNECTION$/',
+                subject: $ekd->key
+            )
+        ) {
+            return false;
+        }
+
+        $this->collectedValues[$ekd->key] = $this->buildSelect(
+            label: "🔌 {$ekd->key}",
+            configPathForOptions: 'database.connections',
+            envKeyDefinition: $ekd,
+            additionalDefaultOption: Config::get('database.default')
+        );
+
+        return true;
+    }
+
+    /**
+     * @param  string[]  $additionalOptions
+     */
+    private function buildSelect(
+        EnvKeyDefinition $envKeyDefinition,
+        string $configPathForOptions,
+        string $label,
+        array $additionalOptions = [],
+        ?string $additionalDefaultOption = null
+    ): int|string {
+        /** @var string[] */
+        $availableOptions = [
+            ...array_keys(
+                array: Config::get(
+                    key: $configPathForOptions,
+                    default: []
+                )
+            ),
+            ...$additionalOptions,
+        ];
+
+        $defaultValue = $this->collectedValues[$envKeyDefinition->key]
+            ?? Config::get($envKeyDefinition->configPath)
+            ?? $this->existingEnv[$envKeyDefinition->key]
+            ?? $envKeyDefinition->default
+            ?? $additionalDefaultOption;
+
+        return select(
+            label: $label,
+            options: $availableOptions,
+            default: $defaultValue,
+            hint: $envKeyDefinition->description,
+            scroll: \count($availableOptions)
+        );
     }
 }
