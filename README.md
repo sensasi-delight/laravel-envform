@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.2-777bb4.svg)
-![Laravel](https://img.shields.io/badge/laravel-%5E10.0-ff2d20.svg)
+![Laravel](https://img.shields.io/badge/laravel-%5E12-ff2d20.svg)
 
 > **Stop guessing your environment variables.**  
 > Automatically generate your `.env` file by analyzing your configuration files interactively.
