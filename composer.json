@@ -36,7 +36,10 @@
     "autoload": {
         "psr-4": {
             "EnvForm\\": "src/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "extra": {
         "laravel": {

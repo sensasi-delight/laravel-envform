@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Symfony\Component\Finder\Finder;
 
+use function EnvForm\addLeadingWhitespace;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
@@ -133,7 +134,7 @@ final class Main extends Command
                 label: '📂 Select a configuration file to configure:',
                 options: $menuOptions,
                 default: 'EXIT',
-                scroll: 15
+                scroll: \count($menuOptions)
             );
 
             if ($selectedGroup === 'EXIT') {
@@ -147,24 +148,40 @@ final class Main extends Command
     }
 
     /**
-     * @param  Collection<string, Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}>>  $groupedKeys
+     * @param  Collection<
+     *  string,
+     *  Collection<
+     *      int,
+     *      array{
+     *          key: string,
+     *          default: mixed,
+     *          file: string,
+     *          description: string,
+     *          group: string
+     *      }
+     *  >
+     * > $groupedKeys
      * @return array<string, string>
      */
     private function buildMenuOptions(Collection $groupedKeys): array
     {
         $menuOptions = [];
         foreach ($groupedKeys as $groupName => $keys) {
-            /** @var string $groupName */
-            $total = $keys->count();
-            $filled = $keys->filter(function ($item) {
-                $key = $item['key'];
-                $val = $this->collectedValues[$key] ?? $this->existingEnv[$key] ?? null;
+            $total = addLeadingWhitespace($keys->count());
 
-                return ! empty($val) || $val === '0' || $val === false;
-            })->count();
+            $filled = addLeadingWhitespace(
+                $keys->filter(
+                    function (array $item) {
+                        $key = $item['key'];
+                        $val = $this->collectedValues[$key] ?? $this->existingEnv[$key] ?? null;
+
+                        return ! empty($val) || $val === '0' || $val === false;
+                    }
+                )->count()
+            );
 
             $status = ($filled >= $total) ? '✅' : "({$filled}/{$total})";
-            $menuOptions[$groupName] = "{$groupName} {$status}";
+            $menuOptions[$groupName] = "{$status} {$groupName}";
         }
 
         $menuOptions['EXIT'] = '💾 Save & Exit';
