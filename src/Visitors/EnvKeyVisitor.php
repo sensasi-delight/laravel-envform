@@ -20,7 +20,7 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
     public function __construct(
         private readonly string $filename,
     ) {
-        $this->foundItems = new Collection();
+        $this->foundItems = new Collection;
     }
 
     public function enterNode(Node $node): ?int
@@ -82,20 +82,26 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
         }
 
         $envKey = $args[0]->value->value;
-        $configPath = $this->filename . '.' . implode('.', $this->stack);
-        
+        $configPath = $this->filename.'.'.implode('.', $this->stack);
+
         // Handle default value if present (2nd argument)
         $defaultValue = null;
         if (isset($args[1]) && $args[1]->value instanceof Node\Scalar\String_) {
-             $defaultValue = $args[1]->value->value;
+            $defaultValue = $args[1]->value->value;
         } elseif (isset($args[1]) && $args[1]->value instanceof Node\Scalar\LNumber) {
-             $defaultValue = $args[1]->value->value;
+            $defaultValue = $args[1]->value->value;
         } elseif (isset($args[1]) && property_exists($args[1]->value, 'name') && $args[1]->value->name instanceof Node\Name) {
-             // Handle boolean/null constants (true, false, null)
-             $constName = strtolower($args[1]->value->name->toString());
-             if ($constName === 'true') $defaultValue = true;
-             if ($constName === 'false') $defaultValue = false;
-             if ($constName === 'null') $defaultValue = null;
+            // Handle boolean/null constants (true, false, null)
+            $constName = strtolower($args[1]->value->name->toString());
+            if ($constName === 'true') {
+                $defaultValue = true;
+            }
+            if ($constName === 'false') {
+                $defaultValue = false;
+            }
+            if ($constName === 'null') {
+                $defaultValue = null;
+            }
         }
 
         $this->foundItems->push(new EnvKeyDefinition(

@@ -13,9 +13,10 @@ final class DependencyResolver
      * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
      * @param  array<string, mixed>  $currentValues
      */
-    public function shouldAsk(string $envKey, Collection $parsedConfig, array $currentValues): bool
+    final public function shouldAsk(string $envKey, Collection $parsedConfig, array $currentValues): bool
     {
         $item = $parsedConfig->firstWhere('key', $envKey);
+
         if (! $item) {
             return true;
         }
@@ -87,19 +88,19 @@ final class DependencyResolver
     }
 
     /**
-     * @param array<string, array<string, array<int, string>>> $rules
-     * @param Collection<int, EnvKeyDefinition> $parsedConfig
-     * @param array<string, mixed> $currentValues
+     * @param  array<string, array<string, array<int, string>>>  $rules
+     * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
+     * @param  array<string, mixed>  $currentValues
      */
     private function isExplicitlyAllowed(
-        string $configPath, 
-        array $rules, 
-        Collection $parsedConfig, 
+        string $configPath,
+        array $rules,
+        Collection $parsedConfig,
         array $currentValues
     ): bool {
         foreach ($rules as $triggerPath => $conditions) {
             $triggerItem = $parsedConfig->firstWhere('configPath', $triggerPath);
-            
+
             if (! $triggerItem) {
                 continue;
             }
@@ -124,7 +125,7 @@ final class DependencyResolver
     }
 
     /**
-     * @param array<string, array<string, array<int, string>>> $rules
+     * @param  array<string, array<string, array<int, string>>>  $rules
      */
     private function isImplicitlyDenied(string $configPath, array $rules): bool
     {
@@ -161,7 +162,7 @@ final class DependencyResolver
     private function resolveConfigPaths(EnvKeyDefinition $item): array
     {
         $paths = $item->configPaths;
-        
+
         // Fallback to legacy single configPath if empty, though DTO should handle this.
         if (empty($paths) && ! empty($item->configPath)) {
             $paths = [$item->configPath];

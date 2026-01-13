@@ -26,7 +26,7 @@ final class ConfigParser
 
         $parser = (new ParserFactory)->createForNewestSupportedVersion();
         /** @var Collection<int, EnvKeyDefinition> $foundItems */
-        $foundItems = new Collection();
+        $foundItems = new Collection;
 
         foreach ($files as $file) {
             $fileItems = $this->parseFile($file, $parser);
@@ -45,16 +45,16 @@ final class ConfigParser
         try {
             $stmts = $parser->parse($file->getContents());
             if ($stmts === null) {
-                return new Collection();
+                return new Collection;
             }
         } catch (\Throwable $e) {
             // Log error or ignore? For now, ignore as per original behavior.
-            return new Collection();
+            return new Collection;
         }
 
         $traverser = new NodeTraverser;
         $visitor = new EnvKeyVisitor($file->getFilenameWithoutExtension());
-        
+
         $traverser->addVisitor($visitor);
         $traverser->traverse($stmts);
 

@@ -13,6 +13,7 @@ use EnvForm\Services\InteractiveWizard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
 
+use function Laravel\Prompts\clear;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
@@ -40,6 +41,7 @@ final class Main extends Command
         EnvFileHelper $envFileHelper,
         DependencyResolver $dependencyResolver
     ): int {
+        clear();
         $this->displayWelcome();
 
         // 1. Select Target Environment File
@@ -69,11 +71,19 @@ final class Main extends Command
         }
 
         // 3. Interactive Wizard
-        $wizard = new InteractiveWizard($allKeys, $existingEnv, $dependencyResolver);
+        $wizard = new InteractiveWizard(
+            $allKeys,
+            $existingEnv,
+            $dependencyResolver
+        );
+
         $collectedValues = $wizard->run();
 
         // 4. Save
-        return $this->saveChanges($collectedValues, $allKeys);
+        return $this->saveChanges(
+            $collectedValues,
+            $allKeys
+        );
     }
 
     private function displayWelcome(): void
@@ -98,7 +108,7 @@ final class Main extends Command
 
         if ($choice === 'NEW') {
             return text(
-                label: '🆕 Enter the name of the new environment file:',
+                label: '🆕 Enter the name of the new environment file',
                 default: '.env.local',
                 hint: 'e.g. .env.testing, .env.staging'
             );
@@ -109,30 +119,40 @@ final class Main extends Command
 
     /**
      * @param  array<string, mixed>  $collectedValues
-     * @param  \Illuminate\Support\Collection<string, \EnvForm\DTO\EnvKeyDefinition>  $allKeys
+     * @param  \Illuminate\Support\Collection<int, \EnvForm\DTO\EnvKeyDefinition>  $allKeys
      */
     private function saveChanges(array $collectedValues, $allKeys): int
     {
+        clear();
+
         if (empty($collectedValues)) {
             warning('⚠️  No changes to save.');
 
             return self::SUCCESS;
         }
 
-        $filename = text(
-            label: '📄 Enter the output filename:',
-            default: $this->targetEnvFile,
-            hint: 'The file will be saved in the project root.'
-        );
+        while (true) {
+            clear();
 
-        $targetPath = App::basePath($filename);
+            $filename = text(
+                label: '📄 Enter the output filename',
+                default: $this->targetEnvFile,
+                hint: 'The file will be saved in the project root.'
+            );
 
-        if (file_exists($targetPath)) {
-            if (! confirm("⚠️  File [{$filename}] already exists. Do you want to overwrite it?", default: false)) {
-                warning('❌ Operation cancelled.');
+            $targetPath = App::basePath($filename);
 
-                return self::SUCCESS;
+            if (
+                file_exists($targetPath) &&
+                ! confirm(
+                    label: "⚠️  File [{$filename}] already exists. Do you want to overwrite it?",
+                    default: false
+                )
+            ) {
+                continue;
             }
+
+            break;
         }
 
         $writer = new EnvWriter($targetPath);

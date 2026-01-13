@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
 use function EnvForm\addLeadingWhitespace;
+use function Laravel\Prompts\clear;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
@@ -25,7 +26,7 @@ final class InteractiveWizard
     private array $collectedValues = [];
 
     /**
-     * @param  Collection<string, EnvKeyDefinition>  $allKeys
+     * @param  Collection<int, EnvKeyDefinition>  $allKeys
      * @param  array<string, string>  $existingEnv
      */
     public function __construct(
@@ -43,8 +44,9 @@ final class InteractiveWizard
         $menuOptions = $this->buildMenuOptions($groupedKeys);
 
         while (true) {
+            clear();
             $selectedGroup = select(
-                label: '📂 Select a configuration file to configure:',
+                label: '📂 Select a configuration file to configure',
                 options: $menuOptions,
                 default: 'EXIT',
                 scroll: \count($menuOptions)
@@ -128,7 +130,7 @@ final class InteractiveWizard
             return;
         }
 
-        $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
+        $currentValue = $this->collectedValues[$keyName] ?? Config::get($meta->configPath) ?? $this->existingEnv[$keyName] ?? null;
         $defaultValue = $meta->default;
 
         $label = "👉 {$keyName}";
@@ -226,7 +228,7 @@ final class InteractiveWizard
             ));
 
             if (! empty($options)) {
-                $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
+                $currentValue = $this->collectedValues[$keyName] ?? Config::get($keyConfigPath) ?? $this->existingEnv[$keyName] ?? null;
                 $initial = $currentValue ?? $meta->default;
 
                 $defaultSelect = (string) $initial;

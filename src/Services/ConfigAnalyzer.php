@@ -20,7 +20,7 @@ final class ConfigAnalyzer
     /**
      * Analyze config directory for env() calls.
      *
-     * @return Collection<string, EnvKeyDefinition>
+     * @return Collection<int, EnvKeyDefinition>
      */
     final public function analyze(string $configPath): Collection
     {
@@ -40,12 +40,11 @@ final class ConfigAnalyzer
         $astRaw = $this->parser->parse($configPath);
 
         $astMap = $astRaw->mapToGroups(
-            function ($item) {
-                return [$item['key'] => $item['config_path']];
-            }
+            fn (EnvKeyDefinition $item) => [
+                $item->key => $item->configPath,
+            ]
         );
 
-        // 3. Merge
         // 3. Merge
         return $foundKeys->map(
             function (array $item) use ($astMap) {
