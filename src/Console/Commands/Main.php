@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace EnvForm\Console\Commands;
 
 use EnvForm\Services\ConfigAnalyzer;
+use EnvForm\Services\DependencyResolver;
 use EnvForm\Services\EnvFileHelper;
 use EnvForm\Services\EnvReader;
 use EnvForm\Services\EnvWriter;
@@ -36,7 +37,8 @@ final class Main extends Command
     final public function handle(
         ConfigAnalyzer $analyzer,
         EnvReader $envReader,
-        EnvFileHelper $envFileHelper
+        EnvFileHelper $envFileHelper,
+        DependencyResolver $dependencyResolver
     ): int {
         $this->displayWelcome();
 
@@ -67,7 +69,7 @@ final class Main extends Command
         }
 
         // 3. Interactive Wizard
-        $wizard = new InteractiveWizard($allKeys, $existingEnv);
+        $wizard = new InteractiveWizard($allKeys, $existingEnv, $dependencyResolver);
         $collectedValues = $wizard->run();
 
         // 4. Save
@@ -107,7 +109,7 @@ final class Main extends Command
 
     /**
      * @param  array<string, mixed>  $collectedValues
-     * @param  \Illuminate\Support\Collection<string, array{key: string, default: mixed, file: string, description: string, group: string}>  $allKeys
+     * @param  \Illuminate\Support\Collection<string, \EnvForm\DTO\EnvKeyDefinition>  $allKeys
      */
     private function saveChanges(array $collectedValues, $allKeys): int
     {

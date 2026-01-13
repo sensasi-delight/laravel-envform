@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\DTO\EnvKeyDefinition;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
@@ -20,12 +21,13 @@ final class InteractiveWizard
     private array $collectedValues = [];
 
     /**
-     * @param  Collection<string, array{key: string, default: mixed, file: string, description: string, group: string}>  $allKeys
+     * @param  Collection<string, EnvKeyDefinition>  $allKeys
      * @param  array<string, string>  $existingEnv
      */
     public function __construct(
         private readonly Collection $allKeys,
-        private readonly array $existingEnv
+        private readonly array $existingEnv,
+        private readonly DependencyResolver $dependencyResolver
     ) {}
 
     /**
@@ -34,10 +36,9 @@ final class InteractiveWizard
     public function run(): array
     {
         $groupedKeys = $this->allKeys->groupBy('group')->sortKeys();
+        $menuOptions = $this->buildMenuOptions($groupedKeys);
 
         while (true) {
-            $menuOptions = $this->buildMenuOptions($groupedKeys);
-
             $selectedGroup = select(
                 label: '📂 Select a configuration file to configure:',
                 options: $menuOptions,
@@ -49,7 +50,6 @@ final class InteractiveWizard
                 break;
             }
 
-            /** @var Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}> $keys */
             $keys = $groupedKeys[$selectedGroup];
             $this->configureGroup((string) $selectedGroup, $keys);
         }
@@ -58,7 +58,7 @@ final class InteractiveWizard
     }
 
     /**
-     * @param  Collection<string, Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}>>  $groupedKeys
+     * @param  Collection<string, Collection<int, EnvKeyDefinition>>  $groupedKeys
      * @return array<string, string>
      */
     private function buildMenuOptions(Collection $groupedKeys): array
@@ -69,8 +69,8 @@ final class InteractiveWizard
 
             $filled = addLeadingWhitespace(
                 $keys->filter(
-                    function (array $item) {
-                        $key = $item['key'];
+                    function (EnvKeyDefinition $item) {
+                        $key = $item->key;
                         $val = $this->collectedValues[$key] ?? $this->existingEnv[$key] ?? null;
 
                         return ! empty($val) || $val === '0' || $val === false;
@@ -88,24 +88,36 @@ final class InteractiveWizard
     }
 
     /**
-     * @param  Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}>  $keys
+     * @param  Collection<int, EnvKeyDefinition>  $keys
      */
     private function configureGroup(string $groupName, Collection $keys): void
     {
         info("🛠️  Configuring settings for: {$groupName}");
 
-        foreach ($keys as $meta) {
-            /** @var array{key: string, description: string, default: mixed} $meta */
+        // Sort keys: Triggers first, then others.
+        $sortedKeys = $keys->sortBy(function (EnvKeyDefinition $meta) {
+            $isTrigger = $this->dependencyResolver->isTrigger($meta->key, $this->allKeys);
+
+            return $isTrigger ? 0 : 1;
+        });
+
+        foreach ($sortedKeys as $meta) {
             $this->askForValue($meta);
         }
     }
 
-    /**
-     * @param  array{key: string, description: string, default: mixed}  $meta
-     */
-    private function askForValue(array $meta): void
+    private function askForValue(EnvKeyDefinition $meta): void
     {
-        $keyName = $meta['key'];
+        $keyName = $meta->key;
+
+        // Check dependencies
+        if (! $this->dependencyResolver->shouldAsk(
+            envKey: $keyName,
+            parsedConfig: $this->allKeys,
+            currentValues: $this->collectedValues
+        )) {
+            return;
+        }
 
         // Skip if special handling took care of it
         if ($this->handleSpecialKeys($keyName, $meta)) {
@@ -113,13 +125,13 @@ final class InteractiveWizard
         }
 
         $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
-        $defaultValue = $meta['default'];
+        $defaultValue = $meta->default;
 
         $label = "👉 {$keyName}";
-        $hint = $meta['description'];
+        $hint = $meta->description;
 
         if ($defaultValue !== null) {
-            $displayDefault = is_bool($defaultValue) ? ($defaultValue ? 'true' : 'false') : (string) $defaultValue;
+            $displayDefault = \is_bool($defaultValue) ? ($defaultValue ? 'true' : 'false') : (string) $defaultValue;
             $hint .= " (Default: {$displayDefault})";
         }
 
@@ -147,16 +159,22 @@ final class InteractiveWizard
         );
     }
 
-    /**
-     * @param  array{default: mixed, description: string}  $meta
-     */
-    private function handleSpecialKeys(string $keyName, array $meta): bool
+    private function handleSpecialKeys(string $keyName, EnvKeyDefinition $meta): bool
     {
         if ($keyName === 'APP_KEY') {
             $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
-            if (confirm('🔑 Do you want to generate/regenerate APP_KEY?', default: empty($currentValue))) {
-                Artisan::call('key:generate', ['--show' => true]);
-                $this->collectedValues[$keyName] = trim(Artisan::output());
+            if (confirm(
+                label: '🔑 Do you want to generate/regenerate APP_KEY?',
+                default: empty($currentValue)
+            )) {
+                Artisan::call(
+                    command: 'key:generate',
+                    parameters: ['--show' => true]
+                );
+
+                $this->collectedValues[$keyName] = trim(
+                    string: Artisan::output()
+                );
 
                 return true;
             }
@@ -164,31 +182,65 @@ final class InteractiveWizard
             return false;
         }
 
-        $connectionConfigMap = [
-            'DB_CONNECTION' => 'database.connections',
-            'QUEUE_CONNECTION' => 'queue.connections',
-            'BROADCAST_CONNECTION' => 'broadcasting.connections',
-        ];
+        $configMap = collect([
+            [
+                'config_path' => 'database.default',
+                'env_key_pattern' => '/^DB_(.*)_CONNECTION$/',
+                'config_key_options_ref' => 'database.connections',
+            ],
+            // 'queue.default' => 'queue.stores',
+            // 'broadcast.default' => 'broadcasting.connections',
+            [
+                'config_path' => 'cache.default',
+                'env_key_pattern' => null,
+                'config_key_options_ref' => 'cache.stores',
+            ],
+            // 'cache.default' => 'cache.stores',
+            // 'filesystem.default' => 'filesystem.disks',
+        ]);
 
-        if (array_key_exists($keyName, $connectionConfigMap)) {
-            /** @var array<int, string> $connections */
-            $connections = array_keys(Config::get($connectionConfigMap[$keyName], []));
+        $keyConfigPath = $meta->configPath;
 
-            if (! empty($connections)) {
+        if (
+            $foundConfigKey = $configMap->first(
+                callback: fn (
+                    array $item
+                ) => $keyConfigPath === $item['config_path'] || (
+                    $item['env_key_pattern'] !== null &&
+                    preg_match(
+                        pattern: $item['env_key_pattern'],
+                        subject: $keyName
+                    ))
+            )
+        ) {
+            /** @var array<int, string> $options */
+            $options = array_map('strval', array_keys(
+                array: Config::get(
+                    key: $foundConfigKey['config_key_options_ref'],
+                    default: []
+                )
+            ));
+
+            if (! empty($options)) {
                 $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
-                $initial = $currentValue ?? $meta['default'];
+                $initial = $currentValue ?? $meta->default;
 
                 $defaultSelect = (string) $initial;
-                if (! in_array($defaultSelect, $connections, true)) {
-                    $defaultSelect = $connections[0];
+                if (! \in_array(
+                    needle: $defaultSelect,
+                    haystack: $options,
+                    strict: true
+                )) {
+                    $defaultSelect = $options[0];
                 }
 
                 if (! empty($defaultSelect)) {
                     $this->collectedValues[$keyName] = select(
                         label: "🔌 {$keyName}",
-                        options: $connections,
+                        options: $options,
                         default: $defaultSelect,
-                        hint: $meta['description']
+                        hint: $meta->description,
+                        scroll: \count($options)
                     );
 
                     return true;

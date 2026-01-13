@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\DTO\EnvKeyDefinition;
 use Illuminate\Support\Collection;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
@@ -12,19 +13,18 @@ final class ConfigAnalyzer
 {
     private const ENV_PATTERN = "/env\(\s*['\"]([A-Z0-9_]+)['\"](?:\s*,\s*(['\"](.*?)['\"]|[^)]+))?\s*\)/";
 
+    public function __construct(
+        private readonly ConfigParser $parser
+    ) {}
+
     /**
      * Analyze config directory for env() calls.
      *
-     * @return Collection<string, array{
-     *  key: string,
-     *  default: mixed,
-     *  file: string,
-     *  description: string,
-     *  group: string
-     * }>
+     * @return Collection<string, EnvKeyDefinition>
      */
     final public function analyze(string $configPath): Collection
     {
+        // 1. Regex Analysis (Metadata)
         $files = Finder::create()
             ->files()
             ->in($configPath)
@@ -32,12 +32,39 @@ final class ConfigAnalyzer
 
         $foundKeys = collect();
 
-        /** @var SplFileInfo $file */
         foreach ($files as $file) {
             $this->extractKeysFromFile($file, $foundKeys);
         }
 
-        return $foundKeys->sortBy('key');
+        // 2. AST Analysis (Structure)
+        $astRaw = $this->parser->parse($configPath);
+
+        $astMap = $astRaw->mapToGroups(
+            function ($item) {
+                return [$item['key'] => $item['config_path']];
+            }
+        );
+
+        // 3. Merge
+        // 3. Merge
+        return $foundKeys->map(
+            function (array $item) use ($astMap) {
+                $paths = $astMap->get($item['key']);
+
+                $configPaths = $paths ? $paths->all() : [];
+                $configPath = $paths ? $paths->first() : '';
+
+                return new EnvKeyDefinition(
+                    key: $item['key'],
+                    default: $item['default'],
+                    file: $item['file'],
+                    description: $item['description'],
+                    group: $item['group'],
+                    configPath: (string) $configPath,
+                    configPaths: $configPaths,
+                );
+            }
+        )->sortBy('key');
     }
 
     /**
@@ -71,6 +98,7 @@ final class ConfigAnalyzer
                     'file' => $filename,
                     'description' => $this->guessDescription($key),
                     'group' => $filename,
+                    'config_path' => '', // Initialize with empty
                 ]);
             }
         }
