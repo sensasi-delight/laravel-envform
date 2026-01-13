@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace EnvForm\Console\Commands;
 
 use EnvForm\Services\ConfigAnalyzer;
+use EnvForm\Services\EnvFileHelper;
+use EnvForm\Services\EnvReader;
 use EnvForm\Services\EnvWriter;
+use EnvForm\Services\InteractiveWizard;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Config;
-use Symfony\Component\Finder\Finder;
 
-use function EnvForm\addLeadingWhitespace;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
@@ -33,52 +31,47 @@ final class Main extends Command
      */
     protected $description = 'Interactively manage .env file based on project analysis.';
 
-    /** @var array<string, string> */
-    private array $existingEnv = [];
-
-    /** @var array<string, mixed> */
-    private array $collectedValues = [];
-
-    /** @var Collection<string, array{key: string, default: mixed, file: string, description: string, group: string}> */
-    private Collection $allKeys;
-
     private string $targetEnvFile = '.env';
 
-    final public function handle(ConfigAnalyzer $analyzer): int
-    {
+    final public function handle(
+        ConfigAnalyzer $analyzer,
+        EnvReader $envReader,
+        EnvFileHelper $envFileHelper
+    ): int {
         $this->displayWelcome();
 
         // 1. Select Target Environment File
-        $this->targetEnvFile = $this->selectEnvFile();
+        $this->targetEnvFile = $this->selectEnvFile($envFileHelper);
 
         $configPath = App::configPath();
         $this->info("🔍 Analyzing project configuration in: {$configPath}...");
 
-        $this->allKeys = $analyzer->analyze($configPath);
+        $allKeys = $analyzer->analyze($configPath);
 
-        if ($this->allKeys->isEmpty()) {
+        if ($allKeys->isEmpty()) {
             warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
 
             return self::FAILURE;
         }
 
-        note("✨ Found {$this->allKeys->count()} potential environment variables to configure.");
+        note("✨ Found {$allKeys->count()} potential environment variables to configure.");
 
         // 2. Load Existing Env
         $envPath = App::basePath($this->targetEnvFile);
+        $existingEnv = [];
         if (file_exists($envPath)) {
             note("📖 Loading existing values from [{$this->targetEnvFile}]...");
-            $this->existingEnv = $this->getCurrentEnv($envPath);
+            $existingEnv = $envReader->read($envPath);
         } else {
             note("🆕 File [{$this->targetEnvFile}] does not exist. Creating a new one.");
-            $this->existingEnv = [];
         }
 
-        $groupedKeys = $this->allKeys->groupBy('group')->sortKeys();
+        // 3. Interactive Wizard
+        $wizard = new InteractiveWizard($allKeys, $existingEnv);
+        $collectedValues = $wizard->run();
 
-        $this->runInteractiveLoop($groupedKeys);
-
-        return $this->saveChanges();
+        // 4. Save
+        return $this->saveChanges($collectedValues, $allKeys);
     }
 
     private function displayWelcome(): void
@@ -88,19 +81,9 @@ final class Main extends Command
         note('🔒 PRIVACY: No data is sent to external servers. All processing stays on your machine.');
     }
 
-    private function selectEnvFile(): string
+    private function selectEnvFile(EnvFileHelper $envFileHelper): string
     {
-        $files = Finder::create()
-            ->files()
-            ->in(App::basePath())
-            ->name('.env*')
-            ->depth(0)
-            ->ignoreDotFiles(false);
-
-        $options = [];
-        foreach ($files as $file) {
-            $options[$file->getFilename()] = $file->getFilename();
-        }
+        $options = $envFileHelper->findEnvFiles(App::basePath());
 
         // Add option for new file
         $options['NEW'] = '➕ Create New File...';
@@ -123,187 +106,12 @@ final class Main extends Command
     }
 
     /**
-     * @param  Collection<string, Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}>>  $groupedKeys
+     * @param  array<string, mixed>  $collectedValues
+     * @param  \Illuminate\Support\Collection<string, array{key: string, default: mixed, file: string, description: string, group: string}>  $allKeys
      */
-    private function runInteractiveLoop(Collection $groupedKeys): void
+    private function saveChanges(array $collectedValues, $allKeys): int
     {
-        while (true) {
-            $menuOptions = $this->buildMenuOptions($groupedKeys);
-
-            $selectedGroup = select(
-                label: '📂 Select a configuration file to configure:',
-                options: $menuOptions,
-                default: 'EXIT',
-                scroll: \count($menuOptions)
-            );
-
-            if ($selectedGroup === 'EXIT') {
-                break;
-            }
-
-            /** @var Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}> $keys */
-            $keys = $groupedKeys[$selectedGroup];
-            $this->configureGroup((string) $selectedGroup, $keys);
-        }
-    }
-
-    /**
-     * @param  Collection<
-     *  string,
-     *  Collection<
-     *      int,
-     *      array{
-     *          key: string,
-     *          default: mixed,
-     *          file: string,
-     *          description: string,
-     *          group: string
-     *      }
-     *  >
-     * > $groupedKeys
-     * @return array<string, string>
-     */
-    private function buildMenuOptions(Collection $groupedKeys): array
-    {
-        $menuOptions = [];
-        foreach ($groupedKeys as $groupName => $keys) {
-            $total = addLeadingWhitespace($keys->count());
-
-            $filled = addLeadingWhitespace(
-                $keys->filter(
-                    function (array $item) {
-                        $key = $item['key'];
-                        $val = $this->collectedValues[$key] ?? $this->existingEnv[$key] ?? null;
-
-                        return ! empty($val) || $val === '0' || $val === false;
-                    }
-                )->count()
-            );
-
-            $status = ($filled >= $total) ? '✅' : "({$filled}/{$total})";
-            $menuOptions[$groupName] = "{$status} {$groupName}";
-        }
-
-        $menuOptions['EXIT'] = '💾 Save & Exit';
-
-        return $menuOptions;
-    }
-
-    /**
-     * @param  Collection<int, array{key: string, default: mixed, file: string, description: string, group: string}>  $keys
-     */
-    private function configureGroup(string $groupName, Collection $keys): void
-    {
-        info("🛠️  Configuring settings for: {$groupName}");
-
-        foreach ($keys as $meta) {
-            /** @var array{key: string, description: string, default: mixed} $meta */
-            $this->askForValue($meta);
-        }
-    }
-
-    /**
-     * @param  array{key: string, description: string, default: mixed}  $meta
-     */
-    private function askForValue(array $meta): void
-    {
-        $keyName = $meta['key'];
-
-        // Skip if special handling took care of it
-        if ($this->handleSpecialKeys($keyName, $meta)) {
-            return;
-        }
-
-        $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
-        $defaultValue = $meta['default'];
-
-        $label = "👉 {$keyName}";
-        $hint = $meta['description'];
-
-        if ($defaultValue !== null) {
-            $displayDefault = is_bool($defaultValue) ? ($defaultValue ? 'true' : 'false') : (string) $defaultValue;
-            $hint .= " (Default: {$displayDefault})";
-        }
-
-        $initial = $currentValue ?? $defaultValue;
-
-        if (is_bool($defaultValue)) {
-            $boolInitial = $initial;
-            if (is_string($initial)) {
-                $boolInitial = strtolower($initial) === 'true';
-            }
-
-            $this->collectedValues[$keyName] = confirm(
-                label: $label,
-                default: (bool) $boolInitial,
-                hint: $hint
-            );
-
-            return;
-        }
-
-        $this->collectedValues[$keyName] = text(
-            label: $label,
-            default: (string) $initial,
-            hint: $hint
-        );
-    }
-
-    /**
-     * @param  array{default: mixed, description: string}  $meta
-     */
-    private function handleSpecialKeys(string $keyName, array $meta): bool
-    {
-        if ($keyName === 'APP_KEY') {
-            $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
-            if (confirm('🔑 Do you want to generate/regenerate APP_KEY?', default: empty($currentValue))) {
-                Artisan::call('key:generate', ['--show' => true]);
-                $this->collectedValues[$keyName] = trim(Artisan::output());
-
-                return true;
-            }
-
-            return false;
-        }
-
-        $connectionConfigMap = [
-            'DB_CONNECTION' => 'database.connections',
-            'QUEUE_CONNECTION' => 'queue.connections',
-            'BROADCAST_CONNECTION' => 'broadcasting.connections',
-        ];
-
-        if (array_key_exists($keyName, $connectionConfigMap)) {
-            /** @var array<int, string> $connections */
-            $connections = array_keys(Config::get($connectionConfigMap[$keyName], []));
-
-            if (! empty($connections)) {
-                $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
-                $initial = $currentValue ?? $meta['default'];
-
-                $defaultSelect = (string) $initial;
-                if (! in_array($defaultSelect, $connections, true)) {
-                    $defaultSelect = $connections[0];
-                }
-
-                if (! empty($defaultSelect)) {
-                    $this->collectedValues[$keyName] = select(
-                        label: "🔌 {$keyName}",
-                        options: $connections,
-                        default: $defaultSelect,
-                        hint: $meta['description']
-                    );
-
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private function saveChanges(): int
-    {
-        if (empty($this->collectedValues)) {
+        if (empty($collectedValues)) {
             warning('⚠️  No changes to save.');
 
             return self::SUCCESS;
@@ -327,40 +135,11 @@ final class Main extends Command
 
         $writer = new EnvWriter($targetPath);
         $writer->update(
-            $this->collectedValues,
-            $this->allKeys->pluck('group', 'key')->toArray()
+            $collectedValues,
+            $allKeys->pluck('group', 'key')->toArray()
         );
         info("✅ Successfully updated {$filename} file!");
 
         return self::SUCCESS;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function getCurrentEnv(string $path): array
-    {
-        if (! file_exists($path)) {
-            return [];
-        }
-
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-        if ($lines === false) {
-            return [];
-        }
-
-        $data = [];
-        foreach ($lines as $line) {
-            if (str_starts_with(trim($line), '#')) {
-                continue;
-            }
-            $parts = explode('=', $line, 2);
-            if (count($parts) === 2) {
-                $data[trim($parts[0])] = trim($parts[1], "' ");
-            }
-        }
-
-        return $data;
     }
 }

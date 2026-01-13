@@ -58,6 +58,13 @@
     "prefer-stable": true,
     "require-dev": {
         "phpstan/phpstan": "^2.1",
-        "laravel/pint": "^1.27"
+        "laravel/pint": "^1.27",
+        "phpunit/phpunit": "^12.5",
+        "orchestra/testbench": "^10.8"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
     }
 }
