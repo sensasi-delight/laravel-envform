@@ -10,12 +10,9 @@ final class DependencyResolver
 {
     /**
      * Filter out any keys that shouldn't be asked for.
-     *
-     * @param  array<string, mixed>  $currentValues
      */
     final public function shouldAsk(
-        string $envKey,
-        array $currentValues
+        string $envKey
     ): bool {
 
         $item = KeyManager::getConfigEnvKeys()->firstWhere('key', $envKey);
@@ -33,8 +30,7 @@ final class DependencyResolver
         foreach ($configKeys as $configKey) {
             if (
                 $this->isConfigActive(
-                    (string) $configKey,
-                    $currentValues
+                    (string) $configKey
                 )
             ) {
                 return true;
@@ -67,10 +63,7 @@ final class DependencyResolver
         return false;
     }
 
-    /**
-     * @param  array<string, mixed>  $currentValues
-     */
-    private function isConfigActive(string $configKey, array $currentValues): bool
+    private function isConfigActive(string $configKey): bool
     {
         if (empty($configKey)) {
             return true;
@@ -79,12 +72,12 @@ final class DependencyResolver
         $rules = DependencyRules::getRules();
 
         // 1. Check if an explicit rule allows this path
-        if ($this->isExplicitlyAllowed($configKey, $rules, $currentValues)) {
+        if ($this->isExplicitlyAllowed($configKey, $rules)) {
             return true;
         }
 
         // 2. Check if an implicit rule denies this path (i.e. it falls under a governed area but wasn't allowed)
-        if ($this->isImplicitlyDenied($configKey, $rules, $currentValues)) {
+        if ($this->isImplicitlyDenied($configKey, $rules)) {
             return false;
         }
 
@@ -94,12 +87,10 @@ final class DependencyResolver
 
     /**
      * @param  array<string, array<string, array<int, string>>>  $rules
-     * @param  array<string, mixed>  $currentValues
      */
     private function isExplicitlyAllowed(
         string $configKey,
-        array $rules,
-        array $currentValues
+        array $rules
     ): bool {
         foreach ($rules as $triggerConfigKey => $conditions) {
             $triggerItem = KeyManager::getConfigEnvKeys()->firstWhere('configKey', $triggerConfigKey);
@@ -109,7 +100,7 @@ final class DependencyResolver
             }
 
             $triggerKey = $triggerItem->key;
-            $triggerValue = $currentValues[$triggerKey] ?? null;
+            $triggerValue = KeyManager::getFormValue($triggerKey);
 
             if (! $triggerValue) {
                 continue;
@@ -129,9 +120,8 @@ final class DependencyResolver
 
     /**
      * @param  array<string, array<string, array<int, string>>>  $rules
-     * @param  array<string, mixed>  $collectedValues
      */
-    private function isImplicitlyDenied(string $configKey, array $rules, array $collectedValues): bool
+    private function isImplicitlyDenied(string $configKey, array $rules): bool
     {
         foreach ($rules as $conditions) {
             foreach ($conditions as $patterns) {
@@ -150,13 +140,13 @@ final class DependencyResolver
                 continue;
             }
 
-            $collectedDependantValue = $collectedValues[$dependantEnvKey] ?? null;
+            $formValue = KeyManager::getFormValue($dependantEnvKey);
 
-            if (! $collectedDependantValue || empty($conditions[$collectedDependantValue])) {
+            if (! $formValue || empty($conditions[$formValue])) {
                 continue;
             }
 
-            $patterns = $conditions[$collectedDependantValue];
+            $patterns = $conditions[$formValue];
 
             if (! $this->matchesPatterns($configKey, $patterns)) {
                 return true;

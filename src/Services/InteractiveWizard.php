@@ -17,15 +17,8 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 
-/**
- * @phpstan-type EnvValue bool|int|string|null
- * @phpstan-type CollectedValues array<string, EnvValue>
- */
 final class InteractiveWizard
 {
-    /** @var CollectedValues */
-    private array $collectedValues = [];
-
     /**
      * @param  array<string, string>  $existingEnv
      */
@@ -34,10 +27,7 @@ final class InteractiveWizard
         private readonly DependencyResolver $dependencyResolver
     ) {}
 
-    /**
-     * @return CollectedValues
-     */
-    public function run(): array
+    public function run(): void
     {
         while (true) {
             clear();
@@ -58,8 +48,6 @@ final class InteractiveWizard
 
             $this->configureGroup((string) $selectedGroup);
         }
-
-        return $this->collectedValues;
     }
 
     /**
@@ -79,7 +67,7 @@ final class InteractiveWizard
                 $envKeys->filter(
                     function (EnvKeyDefinition $item) {
                         $key = $item->key;
-                        $val = $this->collectedValues[$key] ?? $this->existingEnv[$key] ?? null;
+                        $val = KeyManager::getFormValue($key) ?? $this->existingEnv[$key] ?? null;
 
                         return ! empty($val) || $val === '0' || $val === false;
                     }
@@ -119,7 +107,6 @@ final class InteractiveWizard
     {
         return KeyManager::getShouldAskEnvKeys(
             $groupName,
-            $this->collectedValues
         )
             ->filter(
                 fn (EnvKeyDefinition $item) => $this->dependencyResolver->isTrigger(
@@ -135,14 +122,12 @@ final class InteractiveWizard
     {
         return KeyManager::getShouldAskEnvKeys(
             $groupName,
-            $this->collectedValues
-        )
-            ->filter(
-                fn (EnvKeyDefinition $item) => $item
-                    ->group === $groupName && ! $this->dependencyResolver->isTrigger(
-                        $item->key,
-                    )
-            );
+        )->filter(
+            fn (EnvKeyDefinition $item) => $item
+                ->group === $groupName && ! $this->dependencyResolver->isTrigger(
+                    $item->key,
+                )
+        );
     }
 
     private function askForValue(EnvKeyDefinition $meta): void
@@ -151,8 +136,7 @@ final class InteractiveWizard
 
         // Check dependencies
         if (! $this->dependencyResolver->shouldAsk(
-            envKey: $keyName,
-            currentValues: $this->collectedValues
+            $keyName
         )) {
             return;
         }
@@ -165,7 +149,11 @@ final class InteractiveWizard
             return;
         }
 
-        $currentValue = $this->collectedValues[$keyName] ?? Config::get($meta->configKey) ?? $this->existingEnv[$keyName] ?? null;
+        $currentValue = KeyManager::getFormValue($keyName)
+            ?? Config::get($meta->configKey)
+            ?? $this->existingEnv[$keyName]
+            ?? null;
+
         $defaultValue = $meta->default;
 
         $label = "👉 {$keyName}";
@@ -184,19 +172,25 @@ final class InteractiveWizard
                 $boolInitial = strtolower($initial) === 'true';
             }
 
-            $this->collectedValues[$keyName] = confirm(
-                label: $label,
-                default: (bool) $boolInitial,
-                hint: $hint
+            KeyManager::setFormValue(
+                $keyName,
+                confirm(
+                    label: $label,
+                    default: (bool) $boolInitial,
+                    hint: $hint
+                )
             );
 
             return;
         }
 
-        $this->collectedValues[$keyName] = text(
-            label: $label,
-            default: (string) $initial,
-            hint: $hint
+        KeyManager::setFormValue(
+            $keyName,
+            text(
+                label: $label,
+                default: (string) $initial,
+                hint: $hint
+            )
         );
     }
 
@@ -206,7 +200,9 @@ final class InteractiveWizard
             return false;
         }
 
-        $currentValue = $this->collectedValues[$keyName] ?? $this->existingEnv[$keyName] ?? null;
+        $currentValue = KeyManager::getFormValue($keyName)
+            ?? $this->existingEnv[$keyName]
+            ?? null;
 
         if (! confirm(
             label: '🔑 Do you want to generate/regenerate APP_KEY?',
@@ -220,8 +216,9 @@ final class InteractiveWizard
             parameters: ['--show' => true]
         );
 
-        $this->collectedValues[$keyName] = trim(
-            string: Artisan::output()
+        KeyManager::setFormValue(
+            $keyName,
+            trim(Artisan::output())
         );
 
         return true;
@@ -250,11 +247,14 @@ final class InteractiveWizard
             'cache.default' => ['null'],
         ];
 
-        $this->collectedValues[$ekd->key] = $this->buildSelect(
-            label: "🔌 {$ekd->key}",
-            optionsRefConfigKey: $configKeyOptionRefs[$ekd->configKey],
-            envKeyDefinition: $ekd,
-            additionalOptions: $configAdditionalOptions[$ekd->configKey] ?? []
+        KeyManager::setFormValue(
+            $ekd->key,
+            $this->buildSelect(
+                label: "🔌 {$ekd->key}",
+                optionsRefConfigKey: $configKeyOptionRefs[$ekd->configKey],
+                envKeyDefinition: $ekd,
+                additionalOptions: $configAdditionalOptions[$ekd->configKey] ?? []
+            )
         );
 
         return true;
@@ -273,11 +273,14 @@ final class InteractiveWizard
             return false;
         }
 
-        $this->collectedValues[$ekd->key] = $this->buildSelect(
-            label: "🔌 {$ekd->key}",
-            optionsRefConfigKey: 'database.connections',
-            envKeyDefinition: $ekd,
-            additionalDefaultOption: Config::get('database.default')
+        KeyManager::setFormValue(
+            $ekd->key,
+            $this->buildSelect(
+                label: "🔌 {$ekd->key}",
+                optionsRefConfigKey: 'database.connections',
+                envKeyDefinition: $ekd,
+                additionalDefaultOption: Config::get('database.default')
+            )
         );
 
         return true;
@@ -304,7 +307,7 @@ final class InteractiveWizard
             ...$additionalOptions,
         ];
 
-        $defaultValue = $this->collectedValues[$envKeyDefinition->key]
+        $defaultValue = KeyManager::getFormValue($envKeyDefinition->key)
             ?? $envKeyDefinition->currentValue
             ?? $envKeyDefinition->default
             ?? $additionalDefaultOption;

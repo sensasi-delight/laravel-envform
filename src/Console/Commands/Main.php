@@ -52,11 +52,9 @@ final class Main extends Command
             $dependencyResolver
         );
 
-        $collectedValues = $wizard->run();
+        $wizard->run();
 
-        return $this->saveChanges(
-            $collectedValues,
-        );
+        return $this->saveChanges();
     }
 
     private function displayWelcome(): void
@@ -66,14 +64,11 @@ final class Main extends Command
         note('🔒 PRIVACY: No data is sent to external servers. All processing stays on your machine.');
     }
 
-    /**
-     * @param  array<string, mixed>  $collectedValues
-     */
-    private function saveChanges(array $collectedValues): int
+    private function saveChanges(): int
     {
         clear();
 
-        if (empty($collectedValues)) {
+        if (empty(KeyManager::getFormValues())) {
             warning('⚠️  No changes to save.');
 
             return self::SUCCESS;
@@ -105,7 +100,7 @@ final class Main extends Command
 
         $writer = new EnvWriter($targetPath);
         $writer->update(
-            $collectedValues,
+            KeyManager::getFormValues(),
             KeyManager::getConfigEnvKeys()->pluck('group', 'key')->toArray()
         );
         info("✅ Successfully updated {$filename} file!");

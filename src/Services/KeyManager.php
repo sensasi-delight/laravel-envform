@@ -119,12 +119,10 @@ final class KeyManager
     }
 
     /**
-     * @param  array<string, mixed>  $currentValues
      * @return Collection<int, EnvKeyDefinition>
      */
     final public static function getShouldAskEnvKeys(
         ?string $group = null,
-        array $currentValues = []
     ): Collection {
         $resolver = new DependencyResolver;
 
@@ -136,10 +134,36 @@ final class KeyManager
 
         return $allEnvKeys
             ->filter(fn (EnvKeyDefinition $key) => $resolver
-                ->shouldAsk(
-                    $key->key,
-                    $currentValues
-                )
+                ->shouldAsk($key->key)
             );
+    }
+
+    /**
+     * All form values with format [ENV_KEY => VALUE]
+     *
+     * @var array<string, bool|int|string|null>
+     */
+    private static $formValues = [];
+
+    /**
+     * Get all form values with format [ENV_KEY => VALUE]
+     *
+     * @return array<string, bool|int|string|null>
+     */
+    final public static function getFormValues(): array
+    {
+        return self::$formValues;
+    }
+
+    final public static function getFormValue(string $envKey): mixed
+    {
+        return self::$formValues[$envKey] ?? null;
+    }
+
+    final public static function setFormValue(
+        string $envKey,
+        mixed $value
+    ): void {
+        self::$formValues[$envKey] = $value;
     }
 }
