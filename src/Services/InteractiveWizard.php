@@ -165,7 +165,7 @@ final class InteractiveWizard
             return;
         }
 
-        $currentValue = $this->collectedValues[$keyName] ?? Config::get($meta->configPath) ?? $this->existingEnv[$keyName] ?? null;
+        $currentValue = $this->collectedValues[$keyName] ?? Config::get($meta->configKey) ?? $this->existingEnv[$keyName] ?? null;
         $defaultValue = $meta->default;
 
         $label = "👉 {$keyName}";
@@ -231,18 +231,18 @@ final class InteractiveWizard
         EnvKeyDefinition $ekd
     ): bool {
         /**
-         * [config path => config path option ref]
+         * [config key => config key option reference]
          *
          * @var array<string, string>
          */
-        $configPathOptionRefs = [
+        $configKeyOptionRefs = [
             'broadcast.default' => 'broadcasting.connections',
             'cache.default' => 'cache.stores',
             'queue.default' => 'queue.stores',
             'filesystem.default' => 'filesystem.disks',
         ];
 
-        if (! isset($configPathOptionRefs[$ekd->configPath])) {
+        if (! isset($configKeyOptionRefs[$ekd->configKey])) {
             return false;
         }
 
@@ -252,9 +252,9 @@ final class InteractiveWizard
 
         $this->collectedValues[$ekd->key] = $this->buildSelect(
             label: "🔌 {$ekd->key}",
-            configPathForOptions: $configPathOptionRefs[$ekd->configPath],
+            optionsRefConfigKey: $configKeyOptionRefs[$ekd->configKey],
             envKeyDefinition: $ekd,
-            additionalOptions: $configAdditionalOptions[$ekd->configPath] ?? []
+            additionalOptions: $configAdditionalOptions[$ekd->configKey] ?? []
         );
 
         return true;
@@ -264,7 +264,7 @@ final class InteractiveWizard
         EnvKeyDefinition $ekd
     ): bool {
         if (
-            $ekd->configPath !== 'database.default' &&
+            $ekd->configKey !== 'database.default' &&
             ! preg_match(
                 pattern: '/^DB_(.*)_CONNECTION$/',
                 subject: $ekd->key
@@ -275,7 +275,7 @@ final class InteractiveWizard
 
         $this->collectedValues[$ekd->key] = $this->buildSelect(
             label: "🔌 {$ekd->key}",
-            configPathForOptions: 'database.connections',
+            optionsRefConfigKey: 'database.connections',
             envKeyDefinition: $ekd,
             additionalDefaultOption: Config::get('database.default')
         );
@@ -288,7 +288,7 @@ final class InteractiveWizard
      */
     private function buildSelect(
         EnvKeyDefinition $envKeyDefinition,
-        string $configPathForOptions,
+        string $optionsRefConfigKey,
         string $label,
         array $additionalOptions = [],
         ?string $additionalDefaultOption = null
@@ -297,7 +297,7 @@ final class InteractiveWizard
         $availableOptions = [
             ...array_keys(
                 array: Config::get(
-                    key: $configPathForOptions,
+                    key: $optionsRefConfigKey,
                     default: []
                 )
             ),

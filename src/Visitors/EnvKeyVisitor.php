@@ -83,7 +83,7 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
         }
 
         $envKey = $args[0]->value->value;
-        $configPath = $this->filename.'.'.implode('.', $this->stack);
+        $configKey = $this->filename.'.'.implode('.', $this->stack);
 
         // Handle default value if present (2nd argument)
         $defaultValue = null;
@@ -111,9 +111,9 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
             file: $this->filename,
             description: '', // Description extraction not yet implemented
             group: 'General', // Default group
-            configPath: $configPath,
-            configPaths: [$configPath],
-            currentValue: Config::get($configPath),
+            configKey: $configKey,
+            configKeys: [$configKey],
+            currentValue: Config::get($configKey),
         ));
     }
 }

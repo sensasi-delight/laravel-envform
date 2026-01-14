@@ -24,17 +24,16 @@ final class DependencyResolver
             return true;
         }
 
-        $paths = $this->resolveConfigPaths($item);
+        $configKeys = $this->resolveConfigKeys($item);
 
-        if (empty($paths)) {
+        if (empty($configKeys)) {
             return true;
         }
 
-        // If ANY usage path is active, we ask for the key.
-        foreach ($paths as $path) {
+        foreach ($configKeys as $configKey) {
             if (
-                $this->isPathActive(
-                    (string) $path,
+                $this->isConfigActive(
+                    (string) $configKey,
                     $currentValues
                 )
             ) {
@@ -56,7 +55,7 @@ final class DependencyResolver
             return false;
         }
 
-        $paths = $this->resolveConfigPaths($item);
+        $paths = $this->resolveConfigKeys($item);
         $rules = DependencyRules::getRules();
 
         foreach ($paths as $path) {
@@ -71,21 +70,21 @@ final class DependencyResolver
     /**
      * @param  array<string, mixed>  $currentValues
      */
-    private function isPathActive(string $configPath, array $currentValues): bool
+    private function isConfigActive(string $configKey, array $currentValues): bool
     {
-        if (empty($configPath)) {
+        if (empty($configKey)) {
             return true;
         }
 
         $rules = DependencyRules::getRules();
 
         // 1. Check if an explicit rule allows this path
-        if ($this->isExplicitlyAllowed($configPath, $rules, $currentValues)) {
+        if ($this->isExplicitlyAllowed($configKey, $rules, $currentValues)) {
             return true;
         }
 
         // 2. Check if an implicit rule denies this path (i.e. it falls under a governed area but wasn't allowed)
-        if ($this->isImplicitlyDenied($configPath, $rules, $currentValues)) {
+        if ($this->isImplicitlyDenied($configKey, $rules, $currentValues)) {
             return false;
         }
 
@@ -98,12 +97,12 @@ final class DependencyResolver
      * @param  array<string, mixed>  $currentValues
      */
     private function isExplicitlyAllowed(
-        string $configPath,
+        string $configKey,
         array $rules,
         array $currentValues
     ): bool {
-        foreach ($rules as $triggerPath => $conditions) {
-            $triggerItem = KeyManager::getConfigEnvKeys()->firstWhere('configPath', $triggerPath);
+        foreach ($rules as $triggerConfigKey => $conditions) {
+            $triggerItem = KeyManager::getConfigEnvKeys()->firstWhere('configKey', $triggerConfigKey);
 
             if (! $triggerItem) {
                 continue;
@@ -119,7 +118,7 @@ final class DependencyResolver
             foreach ($conditions as $expectedValue => $patterns) {
                 // If the path matches the pattern for this condition
                 // AND the trigger value matches the expected value, it is allowed.
-                if ($this->matchesPatterns($configPath, $patterns) && (string) $triggerValue === (string) $expectedValue) {
+                if ($this->matchesPatterns($configKey, $patterns) && (string) $triggerValue === (string) $expectedValue) {
                     return true;
                 }
             }
@@ -132,11 +131,11 @@ final class DependencyResolver
      * @param  array<string, array<string, array<int, string>>>  $rules
      * @param  array<string, mixed>  $collectedValues
      */
-    private function isImplicitlyDenied(string $configPath, array $rules, array $collectedValues): bool
+    private function isImplicitlyDenied(string $configKey, array $rules, array $collectedValues): bool
     {
         foreach ($rules as $conditions) {
             foreach ($conditions as $patterns) {
-                if ($this->matchesPatterns($configPath, $patterns)) {
+                if ($this->matchesPatterns($configKey, $patterns)) {
                     // It matches a restrictive pattern, but wasn't explicitly allowed above.
                     // Therefore it is hidden/denied.
                     return true;
@@ -144,8 +143,8 @@ final class DependencyResolver
             }
         }
 
-        foreach ($rules as $dependantConfigPath => $conditions) {
-            $dependantEnvKey = KeyManager::getConfigEnvKeys()->firstWhere('configPath', $dependantConfigPath)->key ?? null;
+        foreach ($rules as $dependantConfigKey => $conditions) {
+            $dependantEnvKey = KeyManager::getConfigEnvKeys()->firstWhere('configKey', $dependantConfigKey)->key ?? null;
 
             if (! $dependantEnvKey) {
                 continue;
@@ -159,7 +158,7 @@ final class DependencyResolver
 
             $patterns = $conditions[$collectedDependantValue];
 
-            if (! $this->matchesPatterns($configPath, $patterns)) {
+            if (! $this->matchesPatterns($configKey, $patterns)) {
                 return true;
             }
         }
@@ -184,15 +183,15 @@ final class DependencyResolver
     /**
      * @return string[]
      */
-    private function resolveConfigPaths(EnvKeyDefinition $item): array
+    private function resolveConfigKeys(EnvKeyDefinition $item): array
     {
-        $paths = $item->configPaths;
+        $configKeys = $item->configKeys;
 
-        // Fallback to legacy single configPath if empty, though DTO should handle this.
-        if (empty($paths) && ! empty($item->configPath)) {
-            $paths = [$item->configPath];
+        // Fallback to legacy single configKey if empty, though DTO should handle this.
+        if (empty($configKeys) && ! empty($item->configKey)) {
+            $configKeys = [$item->configKey];
         }
 
-        return array_filter($paths);
+        return array_filter($configKeys);
     }
 }

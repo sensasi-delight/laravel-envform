@@ -47,7 +47,7 @@ final class ConfigAnalyzer
 
         $astMap = $astRaw->mapToGroups(
             fn (EnvKeyDefinition $item) => [
-                $item->key => $item->configPath,
+                $item->key => $item->configKey,
             ]
         );
 
@@ -56,8 +56,8 @@ final class ConfigAnalyzer
             function (array $item) use ($astMap) {
                 $paths = $astMap->get($item['key']);
 
-                $configPaths = $paths ? $paths->all() : [];
-                $configPath = $paths ? $paths->first() : '';
+                $configKeys = $paths ? $paths->all() : [];
+                $configKey = $paths ? $paths->first() : '';
 
                 return new EnvKeyDefinition(
                     key: $item['key'],
@@ -65,9 +65,9 @@ final class ConfigAnalyzer
                     file: $item['file'],
                     description: $item['description'],
                     group: $item['group'],
-                    configPath: (string) $configPath,
-                    configPaths: $configPaths,
-                    currentValue: $configPath ? Config::get($configPath) : null,
+                    configKeys: $configKeys,
+                    configKey: (string) $configKey,
+                    currentValue: $configKey ? Config::get($configKey) : null,
                 );
             }
         )->sortBy('key');
