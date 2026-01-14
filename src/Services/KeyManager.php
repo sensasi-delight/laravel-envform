@@ -101,12 +101,19 @@ final class KeyManager
     }
 
     /**
+     * @param  array<string, mixed>  $currentValues
      * @return Collection<int, EnvKeyDefinition>
      */
-    public static function getShouldAskEnvKeys(): Collection
+    public static function getShouldAskEnvKeys(array $currentValues = []): Collection
     {
         $resolver = new DependencyResolver;
 
-        return self::getConfigEnvKeys()->filter(fn (EnvKeyDefinition $key) => $resolver->shouldAsk($key->key, self::getConfigEnvKeys(), []));
+        return self::getConfigEnvKeys()
+            ->filter(fn (EnvKeyDefinition $key) => $resolver
+                ->shouldAsk(
+                    $key->key,
+                    self::getConfigEnvKeys(), $currentValues
+                )
+            );
     }
 }

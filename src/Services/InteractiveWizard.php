@@ -45,8 +45,8 @@ final class InteractiveWizard
             clear();
             $this->showSummaryTable();
 
-            $groupedKeys = KeyManager::getShouldAskEnvKeys()->groupBy('group')->sortKeys();
-            $menuOptions = $this->buildMenuOptions($groupedKeys);
+            $menuOptions = $this->buildMenuOptions();
+
             $selectedGroup = select(
                 label: '📂 Select a configuration file to configure',
                 options: $menuOptions,
@@ -58,19 +58,19 @@ final class InteractiveWizard
                 break;
             }
 
-            $keys = $groupedKeys[$selectedGroup];
-            $this->configureGroup((string) $selectedGroup, $keys);
+            $this->configureGroup((string) $selectedGroup);
         }
 
         return $this->collectedValues;
     }
 
     /**
-     * @param  Collection<string, Collection<int, EnvKeyDefinition>>  $groupedKeys
      * @return array<string, string>
      */
-    private function buildMenuOptions(Collection $groupedKeys): array
+    private function buildMenuOptions(): array
     {
+        $groupedKeys = KeyManager::getShouldAskEnvKeys()->groupBy('group')->sortKeys();
+
         $menuOptions = [];
         foreach ($groupedKeys as $groupName => $keys) {
             $total = addLeadingWhitespace($keys->count());
@@ -95,23 +95,55 @@ final class InteractiveWizard
         return $menuOptions;
     }
 
-    /**
-     * @param  Collection<int, EnvKeyDefinition>  $keys
-     */
-    private function configureGroup(string $groupName, Collection $keys): void
+    private function configureGroup(string $groupName): void
     {
         info("🛠️  Configuring settings for: {$groupName}");
 
-        // Sort keys: Triggers first, then others.
-        $sortedKeys = $keys->sortBy(function (EnvKeyDefinition $meta) {
-            $isTrigger = $this->dependencyResolver->isTrigger($meta->key, $this->allKeys);
-
-            return $isTrigger ? 0 : 1;
-        });
-
-        foreach ($sortedKeys as $meta) {
-            $this->askForValue($meta);
+        foreach (
+            $this->getTriggerKeys($groupName) as $envKey
+        ) {
+            $this->askForValue($envKey);
         }
+
+        foreach (
+            $this->getNonTriggerKeys($groupName) as $envKey
+        ) {
+            $this->askForValue($envKey);
+        }
+    }
+
+    /**
+     * @return Collection<int, EnvKeyDefinition>
+     */
+    private function getTriggerKeys(string $groupName): Collection
+    {
+        return KeyManager::getShouldAskEnvKeys(
+            $this->collectedValues
+        )
+            ->filter(
+                fn (EnvKeyDefinition $item) => $item
+                    ->group === $groupName && $this->dependencyResolver->isTrigger(
+                        $item->key,
+                        $this->allKeys
+                    )
+            );
+    }
+
+    /**
+     * @return Collection<int, EnvKeyDefinition>
+     */
+    private function getNonTriggerKeys(string $groupName): Collection
+    {
+        return KeyManager::getShouldAskEnvKeys(
+            $this->collectedValues
+        )
+            ->filter(
+                fn (EnvKeyDefinition $item) => $item
+                    ->group === $groupName && ! $this->dependencyResolver->isTrigger(
+                        $item->key,
+                        $this->allKeys
+                    )
+            );
     }
 
     private function askForValue(EnvKeyDefinition $meta): void
@@ -297,9 +329,11 @@ final class InteractiveWizard
             ],
             [
                 [
-                    'ENV keys need to be configured', KeyManager::getShouldAskEnvKeys()->count(),
+                    'ENV keys need to be configured',
+                    (string) KeyManager::getShouldAskEnvKeys()->count(),
                 ], [
-                    'ENV keys found in .env file', KeyManager::getDotEnvKeyValuePairs()->count(),
+                    'ENV keys found in .env file',
+                    (string) KeyManager::getDotEnvKeyValuePairs()->count(),
                 ],
             ]
         );
