@@ -27,11 +27,9 @@ final class InteractiveWizard
     private array $collectedValues = [];
 
     /**
-     * @param  Collection<int, EnvKeyDefinition>  $allKeys
      * @param  array<string, string>  $existingEnv
      */
     public function __construct(
-        private readonly Collection $allKeys,
         private readonly array $existingEnv,
         private readonly DependencyResolver $dependencyResolver
     ) {}
@@ -126,7 +124,6 @@ final class InteractiveWizard
             ->filter(
                 fn (EnvKeyDefinition $item) => $this->dependencyResolver->isTrigger(
                     $item->key,
-                    $this->allKeys
                 )
             );
     }
@@ -144,7 +141,6 @@ final class InteractiveWizard
                 fn (EnvKeyDefinition $item) => $item
                     ->group === $groupName && ! $this->dependencyResolver->isTrigger(
                         $item->key,
-                        $this->allKeys
                     )
             );
     }
@@ -156,7 +152,6 @@ final class InteractiveWizard
         // Check dependencies
         if (! $this->dependencyResolver->shouldAsk(
             envKey: $keyName,
-            parsedConfig: $this->allKeys,
             currentValues: $this->collectedValues
         )) {
             return;

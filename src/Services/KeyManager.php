@@ -128,17 +128,17 @@ final class KeyManager
     ): Collection {
         $resolver = new DependencyResolver;
 
-        $allKeys = self::getConfigEnvKeys();
+        $allEnvKeys = self::getConfigEnvKeys();
 
         if ($group) {
-            $allKeys = $allKeys->filter(fn (EnvKeyDefinition $key) => $key->group === $group);
+            $allEnvKeys = $allEnvKeys->filter(fn (EnvKeyDefinition $key) => $key->group === $group);
         }
 
-        return $allKeys
+        return $allEnvKeys
             ->filter(fn (EnvKeyDefinition $key) => $resolver
                 ->shouldAsk(
                     $key->key,
-                    self::getConfigEnvKeys(), $currentValues
+                    $currentValues
                 )
             );
     }

@@ -5,22 +5,20 @@ declare(strict_types=1);
 namespace EnvForm\Services;
 
 use EnvForm\DTO\EnvKeyDefinition;
-use Illuminate\Support\Collection;
 
 final class DependencyResolver
 {
     /**
      * Filter out any keys that shouldn't be asked for.
      *
-     * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
      * @param  array<string, mixed>  $currentValues
      */
     final public function shouldAsk(
         string $envKey,
-        Collection $parsedConfig,
         array $currentValues
     ): bool {
-        $item = $parsedConfig->firstWhere('key', $envKey);
+
+        $item = KeyManager::getConfigEnvKeys()->firstWhere('key', $envKey);
 
         if (! $item) {
             return true;
@@ -37,7 +35,6 @@ final class DependencyResolver
             if (
                 $this->isPathActive(
                     (string) $path,
-                    $parsedConfig,
                     $currentValues
                 )
             ) {
@@ -50,12 +47,11 @@ final class DependencyResolver
 
     /**
      * Check if the given Env Key is a trigger for other dependencies.
-     *
-     * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
      */
-    public function isTrigger(string $envKey, Collection $parsedConfig): bool
+    public function isTrigger(string $envKey): bool
     {
-        $item = $parsedConfig->firstWhere('key', $envKey);
+        $allEnvKeys = KeyManager::getConfigEnvKeys();
+        $item = $allEnvKeys->firstWhere('key', $envKey);
         if (! $item) {
             return false;
         }
@@ -73,10 +69,9 @@ final class DependencyResolver
     }
 
     /**
-     * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
      * @param  array<string, mixed>  $currentValues
      */
-    private function isPathActive(string $configPath, Collection $parsedConfig, array $currentValues): bool
+    private function isPathActive(string $configPath, array $currentValues): bool
     {
         if (empty($configPath)) {
             return true;
@@ -85,7 +80,7 @@ final class DependencyResolver
         $rules = DependencyRules::getRules();
 
         // 1. Check if an explicit rule allows this path
-        if ($this->isExplicitlyAllowed($configPath, $rules, $parsedConfig, $currentValues)) {
+        if ($this->isExplicitlyAllowed($configPath, $rules, $currentValues)) {
             return true;
         }
 
@@ -100,17 +95,15 @@ final class DependencyResolver
 
     /**
      * @param  array<string, array<string, array<int, string>>>  $rules
-     * @param  Collection<int, EnvKeyDefinition>  $parsedConfig
      * @param  array<string, mixed>  $currentValues
      */
     private function isExplicitlyAllowed(
         string $configPath,
         array $rules,
-        Collection $parsedConfig,
         array $currentValues
     ): bool {
         foreach ($rules as $triggerPath => $conditions) {
-            $triggerItem = $parsedConfig->firstWhere('configPath', $triggerPath);
+            $triggerItem = KeyManager::getConfigEnvKeys()->firstWhere('configPath', $triggerPath);
 
             if (! $triggerItem) {
                 continue;

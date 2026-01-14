@@ -38,8 +38,6 @@ final class Main extends Command
         clear();
         $this->displayWelcome();
 
-        $allKeys = KeyManager::getConfigEnvKeys();
-
         if (KeyManager::getConfigEnvKeys()->isEmpty()) {
             warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
 
@@ -50,7 +48,6 @@ final class Main extends Command
             ->mapWithKeys(fn ($item) => [$item->key => $item->value])->toArray();
 
         $wizard = new InteractiveWizard(
-            $allKeys,
             $dotEnvKeys,
             $dependencyResolver
         );
@@ -59,7 +56,6 @@ final class Main extends Command
 
         return $this->saveChanges(
             $collectedValues,
-            $allKeys
         );
     }
 
@@ -72,9 +68,8 @@ final class Main extends Command
 
     /**
      * @param  array<string, mixed>  $collectedValues
-     * @param  \Illuminate\Support\Collection<int, \EnvForm\DTO\EnvKeyDefinition>  $allKeys
      */
-    private function saveChanges(array $collectedValues, $allKeys): int
+    private function saveChanges(array $collectedValues): int
     {
         clear();
 
@@ -111,7 +106,7 @@ final class Main extends Command
         $writer = new EnvWriter($targetPath);
         $writer->update(
             $collectedValues,
-            $allKeys->pluck('group', 'key')->toArray()
+            KeyManager::getConfigEnvKeys()->pluck('group', 'key')->toArray()
         );
         info("✅ Successfully updated {$filename} file!");
 
