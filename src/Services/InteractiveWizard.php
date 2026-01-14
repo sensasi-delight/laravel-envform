@@ -69,14 +69,16 @@ final class InteractiveWizard
      */
     private function buildMenuOptions(): array
     {
-        $groupedKeys = KeyManager::getShouldAskEnvKeys()->groupBy('group')->sortKeys();
+        $fileNames = KeyManager::getFoundConfigFileNames();
 
         $menuOptions = [];
-        foreach ($groupedKeys as $groupName => $keys) {
-            $total = addLeadingWhitespace($keys->count());
+        foreach ($fileNames as $fileName) {
+            $envKeys = KeyManager::getShouldAskEnvKeys($fileName);
+
+            $total = addLeadingWhitespace($envKeys->count());
 
             $filled = addLeadingWhitespace(
-                $keys->filter(
+                $envKeys->filter(
                     function (EnvKeyDefinition $item) {
                         $key = $item->key;
                         $val = $this->collectedValues[$key] ?? $this->existingEnv[$key] ?? null;
@@ -87,7 +89,7 @@ final class InteractiveWizard
             );
 
             $status = ($filled >= $total) ? '✅' : "({$filled}/{$total})";
-            $menuOptions[$groupName] = "{$status} {$groupName}";
+            $menuOptions[$fileName] = "{$status} {$fileName}";
         }
 
         $menuOptions['EXIT'] = '💾 Save & Exit';
@@ -118,14 +120,14 @@ final class InteractiveWizard
     private function getTriggerKeys(string $groupName): Collection
     {
         return KeyManager::getShouldAskEnvKeys(
+            $groupName,
             $this->collectedValues
         )
             ->filter(
-                fn (EnvKeyDefinition $item) => $item
-                    ->group === $groupName && $this->dependencyResolver->isTrigger(
-                        $item->key,
-                        $this->allKeys
-                    )
+                fn (EnvKeyDefinition $item) => $this->dependencyResolver->isTrigger(
+                    $item->key,
+                    $this->allKeys
+                )
             );
     }
 
@@ -135,6 +137,7 @@ final class InteractiveWizard
     private function getNonTriggerKeys(string $groupName): Collection
     {
         return KeyManager::getShouldAskEnvKeys(
+            $groupName,
             $this->collectedValues
         )
             ->filter(

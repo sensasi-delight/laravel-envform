@@ -22,9 +22,14 @@ final class KeyManager
     private static Collection $configEnvKeys;
 
     /**
+     * @var Collection<int, string>
+     */
+    private static Collection $foundConfigFileNames;
+
+    /**
      * @return Collection<int, EnvKeyDefinition>
      */
-    public static function getConfigEnvKeys(): Collection
+    final public static function getConfigEnvKeys(): Collection
     {
         if (empty(self::$configEnvKeys)) {
             $analyzer = app(ConfigAnalyzer::class);
@@ -36,9 +41,22 @@ final class KeyManager
             );
 
             self::$configEnvKeys = $configEnvKeys;
+            self::$foundConfigFileNames = $configEnvKeys->pluck('group')->unique();
         }
 
         return self::$configEnvKeys;
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    final public static function getFoundConfigFileNames(): Collection
+    {
+        if (empty(self::$foundConfigFileNames)) {
+            self::getConfigEnvKeys();
+        }
+
+        return self::$foundConfigFileNames;
     }
 
     /**
@@ -51,7 +69,7 @@ final class KeyManager
     /**
      * @return Collection<int, object{key: string, value: string}>
      */
-    public static function getDotEnvKeyValuePairs(): Collection
+    final public static function getDotEnvKeyValuePairs(): Collection
     {
         if (empty(self::$dotEnvKeyValuePairs)) {
             $dotEnvFile = self::selectEnvFile();
@@ -104,11 +122,19 @@ final class KeyManager
      * @param  array<string, mixed>  $currentValues
      * @return Collection<int, EnvKeyDefinition>
      */
-    public static function getShouldAskEnvKeys(array $currentValues = []): Collection
-    {
+    final public static function getShouldAskEnvKeys(
+        ?string $group = null,
+        array $currentValues = []
+    ): Collection {
         $resolver = new DependencyResolver;
 
-        return self::getConfigEnvKeys()
+        $allKeys = self::getConfigEnvKeys();
+
+        if ($group) {
+            $allKeys = $allKeys->filter(fn (EnvKeyDefinition $key) => $key->group === $group);
+        }
+
+        return $allKeys
             ->filter(fn (EnvKeyDefinition $key) => $resolver
                 ->shouldAsk(
                     $key->key,
