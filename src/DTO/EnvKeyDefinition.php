@@ -16,7 +16,7 @@ final class EnvKeyDefinition
         public readonly string $description,
         public readonly string $group,
         public readonly string $configPath,
-        public readonly array $configPaths = [],
         public readonly mixed $currentValue,
+        public readonly array $configPaths = [],
     ) {}
 }
