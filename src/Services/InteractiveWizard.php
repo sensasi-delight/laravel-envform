@@ -19,15 +19,14 @@ use function Laravel\Prompts\text;
 
 final class InteractiveWizard
 {
-    /**
-     * @param  array<string, string>  $existingEnv
-     */
-    public function __construct(
-        private readonly array $existingEnv,
-        private readonly DependencyResolver $dependencyResolver
-    ) {}
+    private readonly DependencyResolver $dependencyResolver;
 
-    public function run(): void
+    final public function __construct()
+    {
+        $this->dependencyResolver = new DependencyResolver;
+    }
+
+    final public function run(): void
     {
         while (true) {
             clear();
@@ -67,7 +66,8 @@ final class InteractiveWizard
                 $envKeys->filter(
                     function (EnvKeyDefinition $item) {
                         $key = $item->key;
-                        $val = KeyManager::getFormValue($key) ?? $this->existingEnv[$key] ?? null;
+                        $val = KeyManager::getFormValue($key)
+                            ?? KeyManager::getDotEnvValue($key);
 
                         return ! empty($val) || $val === '0' || $val === false;
                     }
@@ -107,12 +107,11 @@ final class InteractiveWizard
     {
         return KeyManager::getShouldAskEnvKeys(
             $groupName,
-        )
-            ->filter(
-                fn (EnvKeyDefinition $item) => $this->dependencyResolver->isTrigger(
-                    $item->key,
-                )
-            );
+        )->filter(
+            fn (EnvKeyDefinition $item) => $this->dependencyResolver->isTrigger(
+                $item->key,
+            )
+        );
     }
 
     /**
@@ -151,8 +150,7 @@ final class InteractiveWizard
 
         $currentValue = KeyManager::getFormValue($keyName)
             ?? Config::get($meta->configKey)
-            ?? $this->existingEnv[$keyName]
-            ?? null;
+            ?? KeyManager::getDotEnvValue($keyName);
 
         $defaultValue = $meta->default;
 
@@ -201,8 +199,7 @@ final class InteractiveWizard
         }
 
         $currentValue = KeyManager::getFormValue($keyName)
-            ?? $this->existingEnv[$keyName]
-            ?? null;
+            ?? KeyManager::getDotEnvValue($keyName);
 
         if (! confirm(
             label: '🔑 Do you want to generate/regenerate APP_KEY?',
@@ -334,7 +331,7 @@ final class InteractiveWizard
                     (string) KeyManager::getShouldAskEnvKeys()->count(),
                 ], [
                     'ENV keys found in .env file',
-                    (string) KeyManager::getDotEnvKeyValuePairs()->count(),
+                    (string) KeyManager::getCountDotEnvKeyValuePairs(),
                 ],
             ]
         );

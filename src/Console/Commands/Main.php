@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace EnvForm\Console\Commands;
 
-use EnvForm\Services\DependencyResolver;
 use EnvForm\Services\EnvWriter;
 use EnvForm\Services\InteractiveWizard;
 use EnvForm\Services\KeyManager;
@@ -33,7 +32,6 @@ final class Main extends Command
     private string $targetEnvFile = '.env';
 
     final public function handle(
-        DependencyResolver $dependencyResolver
     ): int {
         clear();
         $this->displayWelcome();
@@ -44,15 +42,7 @@ final class Main extends Command
             return self::FAILURE;
         }
 
-        $dotEnvKeys = KeyManager::getDotEnvKeyValuePairs()
-            ->mapWithKeys(fn ($item) => [$item->key => $item->value])->toArray();
-
-        $wizard = new InteractiveWizard(
-            $dotEnvKeys,
-            $dependencyResolver
-        );
-
-        $wizard->run();
+        (new InteractiveWizard)->run();
 
         return $this->saveChanges();
     }

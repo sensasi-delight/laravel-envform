@@ -69,7 +69,7 @@ final class KeyManager
     /**
      * @return Collection<int, object{key: string, value: string}>
      */
-    final public static function getDotEnvKeyValuePairs(): Collection
+    private static function getDotEnvKeyValuePairs(): Collection
     {
         if (empty(self::$dotEnvKeyValuePairs)) {
             $dotEnvFile = self::selectEnvFile();
@@ -91,6 +91,17 @@ final class KeyManager
         }
 
         return self::$dotEnvKeyValuePairs;
+    }
+
+    final public static function getDotEnvValue(string $envKey): ?string
+    {
+        return self::getDotEnvKeyValuePairs()
+            ->firstWhere('key', $envKey)?->value;
+    }
+
+    final public static function getCountDotEnvKeyValuePairs(): int
+    {
+        return self::getDotEnvKeyValuePairs()->count();
     }
 
     private static function selectEnvFile(): string
