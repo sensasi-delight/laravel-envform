@@ -90,7 +90,7 @@ final class DependencyResolver
         }
 
         // 2. Check if an implicit rule denies this path (i.e. it falls under a governed area but wasn't allowed)
-        if ($this->isImplicitlyDenied($configPath, $rules)) {
+        if ($this->isImplicitlyDenied($configPath, $rules, $currentValues)) {
             return false;
         }
 
@@ -137,8 +137,9 @@ final class DependencyResolver
 
     /**
      * @param  array<string, array<string, array<int, string>>>  $rules
+     * @param  array<string, mixed>  $collectedValues
      */
-    private function isImplicitlyDenied(string $configPath, array $rules): bool
+    private function isImplicitlyDenied(string $configPath, array $rules, array $collectedValues): bool
     {
         foreach ($rules as $conditions) {
             foreach ($conditions as $patterns) {
@@ -147,6 +148,26 @@ final class DependencyResolver
                     // Therefore it is hidden/denied.
                     return true;
                 }
+            }
+        }
+
+        foreach ($rules as $dependantConfigPath => $conditions) {
+            $dependantEnvKey = KeyManager::getConfigEnvKeys()->firstWhere('configPath', $dependantConfigPath)->key ?? null;
+
+            if (! $dependantEnvKey) {
+                continue;
+            }
+
+            $collectedDependantValue = $collectedValues[$dependantEnvKey] ?? null;
+
+            if (! $collectedDependantValue || empty($conditions[$collectedDependantValue])) {
+                continue;
+            }
+
+            $patterns = $conditions[$collectedDependantValue];
+
+            if (! $this->matchesPatterns($configPath, $patterns)) {
+                return true;
             }
         }
 
