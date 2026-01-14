@@ -14,6 +14,7 @@ use function Laravel\Prompts\clear;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
+use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 
 /**
@@ -42,6 +43,8 @@ final class InteractiveWizard
     {
         while (true) {
             clear();
+            $this->showSummaryTable();
+
             $groupedKeys = KeyManager::getShouldAskEnvKeys()->groupBy('group')->sortKeys();
             $menuOptions = $this->buildMenuOptions($groupedKeys);
             $selectedGroup = select(
@@ -282,6 +285,23 @@ final class InteractiveWizard
             default: $defaultValue,
             hint: $envKeyDefinition->description,
             scroll: \count($availableOptions)
+        );
+    }
+
+    private function showSummaryTable(): void
+    {
+        table(
+            [
+                'Summary',
+                '',
+            ],
+            [
+                [
+                    'ENV keys need to be configured', KeyManager::getShouldAskEnvKeys()->count(),
+                ], [
+                    'ENV keys found in .env file', KeyManager::getDotEnvKeyValuePairs()->count(),
+                ],
+            ]
         );
     }
 }
