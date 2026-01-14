@@ -40,11 +40,10 @@ final class InteractiveWizard
      */
     public function run(): array
     {
-        $groupedKeys = $this->allKeys->groupBy('group')->sortKeys();
-        $menuOptions = $this->buildMenuOptions($groupedKeys);
-
         while (true) {
             clear();
+            $groupedKeys = KeyManager::getShouldAskEnvKeys()->groupBy('group')->sortKeys();
+            $menuOptions = $this->buildMenuOptions($groupedKeys);
             $selectedGroup = select(
                 label: '📂 Select a configuration file to configure',
                 options: $menuOptions,
@@ -273,8 +272,7 @@ final class InteractiveWizard
         ];
 
         $defaultValue = $this->collectedValues[$envKeyDefinition->key]
-            ?? Config::get($envKeyDefinition->configPath)
-            ?? $this->existingEnv[$envKeyDefinition->key]
+            ?? $envKeyDefinition->currentValue
             ?? $envKeyDefinition->default
             ?? $additionalDefaultOption;
 

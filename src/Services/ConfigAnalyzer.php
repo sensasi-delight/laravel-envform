@@ -6,6 +6,8 @@ namespace EnvForm\Services;
 
 use EnvForm\DTO\EnvKeyDefinition;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Config;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
@@ -22,8 +24,12 @@ final class ConfigAnalyzer
      *
      * @return Collection<int, EnvKeyDefinition>
      */
-    final public function analyze(string $configPath): Collection
+    final public function analyze(): Collection
     {
+        $configPath = App::configPath();
+
+        info("🔍 Analyzing project configuration in: {$configPath}...");
+
         // 1. Regex Analysis (Metadata)
         $files = Finder::create()
             ->files()
@@ -61,6 +67,7 @@ final class ConfigAnalyzer
                     group: $item['group'],
                     configPath: (string) $configPath,
                     configPaths: $configPaths,
+                    currentValue: $configPath ? Config::get($configPath) : null,
                 );
             }
         )->sortBy('key');
@@ -69,8 +76,10 @@ final class ConfigAnalyzer
     /**
      * @param  Collection<string, mixed>  $foundKeys
      */
-    private function extractKeysFromFile(SplFileInfo $file, Collection $foundKeys): void
-    {
+    private function extractKeysFromFile(
+        SplFileInfo $file,
+        Collection $foundKeys
+    ): void {
         $content = $file->getContents();
         $filename = $file->getFilename();
 

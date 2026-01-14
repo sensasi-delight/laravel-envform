@@ -30,8 +30,8 @@ final class EnvReaderTest extends TestCase
         $reader = new EnvReader;
         $result = $reader->read('non_existent_file.env');
 
-        $this->assertIsArray($result);
-        $this->assertEmpty($result);
+        $this->assertIsIterable($result);
+        $this->assertCount(0, $result);
     }
 
     public function test_it_parses_env_file_correctly(): void
@@ -46,13 +46,13 @@ EOT;
         file_put_contents($this->tempFile, $content);
 
         $reader = new EnvReader;
-        $result = $reader->read($this->tempFile);
+        $result = $reader->read($this->tempFile)->keyBy('key');
 
         $this->assertCount(4, $result);
-        $this->assertEquals('Laravel EnvForm', $result['APP_NAME']);
-        $this->assertEquals('local', $result['APP_ENV']);
-        $this->assertEquals('true', $result['APP_DEBUG']);
-        $this->assertEquals('mysql', $result['DB_CONNECTION']);
+        $this->assertEquals('Laravel EnvForm', $result['APP_NAME']->value);
+        $this->assertEquals('local', $result['APP_ENV']->value);
+        $this->assertEquals('true', $result['APP_DEBUG']->value);
+        $this->assertEquals('mysql', $result['DB_CONNECTION']->value);
     }
 
     public function test_it_ignores_comments_and_empty_lines(): void
@@ -68,8 +68,12 @@ EOT;
         $reader = new EnvReader;
         $result = $reader->read($this->tempFile);
 
+        $resultArr = $result->mapWithKeys(fn ($item) => [$item->key => $item->value])->toArray();
+
+        $this->assertArrayHasKey('KEY_ONE', $resultArr);
+        $this->assertArrayHasKey('KEY_TWO', $resultArr);
+
+        $this->assertIsIterable($result);
         $this->assertCount(2, $result);
-        $this->assertArrayHasKey('KEY_ONE', $result);
-        $this->assertArrayHasKey('KEY_TWO', $result);
     }
 }

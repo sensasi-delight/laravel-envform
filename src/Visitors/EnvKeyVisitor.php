@@ -6,6 +6,7 @@ namespace EnvForm\Visitors;
 
 use EnvForm\DTO\EnvKeyDefinition;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 use PhpParser\Node;
 use PhpParser\NodeVisitorAbstract;
 
@@ -104,14 +105,24 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
             }
         }
 
-        $this->foundItems->push(new EnvKeyDefinition(
-            key: $envKey,
-            default: $defaultValue,
-            file: $this->filename,
-            description: '', // Description extraction not yet implemented
-            group: 'General', // Default group
-            configPath: $configPath,
-            configPaths: [$configPath]
-        ));
+        try {
+            //code...
+            $this->foundItems->push(new EnvKeyDefinition(
+                key: $envKey,
+                default: $defaultValue,
+                file: $this->filename,
+                description: '', // Description extraction not yet implemented
+                group: 'General', // Default group
+                configPath: $configPath,
+                configPaths: [$configPath],
+                currentValue: Config::get($configPath),
+            ));
+        } catch (\Throwable $th) {
+            dd(
+                $envKey,
+                $configPath,
+                Config::get($configPath)
+            );
+        }
     }
 }

@@ -4,35 +4,50 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use Illuminate\Support\Collection;
+
 final class EnvReader
 {
     /**
-     * @return array<string, string>
+     * @return Collection<int, object{key: string, value: string}>
      */
-    final public function read(string $filePath): array
+    final public function read(string $filePath): Collection
     {
         if (! file_exists($filePath)) {
-            return [];
+            return collect();
         }
 
-        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $lines = file(
+            $filePath,
+            FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
+        );
 
         if ($lines === false) {
-            return [];
+            return collect();
         }
 
-        $data = [];
+        $data = collect();
+
         foreach ($lines as $line) {
             if (str_starts_with(trim($line), '#')) {
                 continue;
             }
 
             $parts = explode('=', $line, 2);
-            if (count($parts) === 2) {
-                $data[trim($parts[0])] = trim($parts[1], " '\"");
+
+            if (\count($parts) === 2) {
+                $data->add(
+                    (object) [
+                        'key' => trim($parts[0]),
+                        'value' => trim(
+                            $parts[1],
+                            " '\""
+                        ),
+                    ]
+                );
             }
         }
 
-        return $data; // Strict return type array
+        return $data;
     }
 }

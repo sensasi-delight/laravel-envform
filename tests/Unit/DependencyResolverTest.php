@@ -6,6 +6,7 @@ namespace Tests\Unit;
 
 use EnvForm\DTO\EnvKeyDefinition;
 use EnvForm\Services\DependencyResolver;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 final class DependencyResolverTest extends TestCase
@@ -118,7 +119,8 @@ final class DependencyResolverTest extends TestCase
             description: 'test',
             group: 'test',
             configPath: $configPath,
-            configPaths: $configPaths
+            configPaths: $configPaths,
+            currentValue: Config::get($key),
         );
     }
 }
