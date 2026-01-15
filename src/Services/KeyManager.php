@@ -155,7 +155,7 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
         return $this->formValues;
     }
 
-    public function getFormValue(string $envKey): mixed
+    public function getFormValue(string $envKey): bool|int|string|null
     {
         return $this->formValues[$envKey] ?? null;
     }
