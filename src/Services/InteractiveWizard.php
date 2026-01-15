@@ -108,8 +108,8 @@ final class InteractiveWizard
         return KeyManager::getShouldAskEnvKeys(
             $groupName,
         )->filter(
-            fn (EnvKeyDefinition $item) => $this->dependencyResolver->isTrigger(
-                $item->key,
+            fn (EnvKeyDefinition $endDef) => $this->dependencyResolver->isTrigger(
+                $endDef,
             )
         );
     }
@@ -122,40 +122,37 @@ final class InteractiveWizard
         return KeyManager::getShouldAskEnvKeys(
             $groupName,
         )->filter(
-            fn (EnvKeyDefinition $item) => $item
+            fn (EnvKeyDefinition $envDef) => $envDef
                 ->group === $groupName && ! $this->dependencyResolver->isTrigger(
-                    $item->key,
+                    $envDef,
                 )
         );
     }
 
-    private function askForValue(EnvKeyDefinition $meta): void
+    private function askForValue(EnvKeyDefinition $envDef): void
     {
-        $keyName = $meta->key;
-
-        // Check dependencies
         if (! $this->dependencyResolver->shouldAsk(
-            $keyName
+            $envDef
         )) {
             return;
         }
 
         if (
-            $this->handleAppKey($keyName) ||
-            $this->handleDbConnection($meta) ||
-            $this->handleEnvKeyWithStrictOptions($meta)
+            $this->handleAppKey($envDef->key) ||
+            $this->handleDbConnection($envDef) ||
+            $this->handleEnvKeyWithStrictOptions($envDef)
         ) {
             return;
         }
 
-        $currentValue = KeyManager::getFormValue($keyName)
-            ?? Config::get($meta->configKey)
-            ?? KeyManager::getDotEnvValue($keyName);
+        $currentValue = KeyManager::getFormValue($envDef->key)
+            ?? Config::get($envDef->configKey)
+            ?? KeyManager::getDotEnvValue($envDef->key);
 
-        $defaultValue = $meta->default;
+        $defaultValue = $envDef->default;
 
-        $label = "👉 {$keyName}";
-        $hint = $meta->description;
+        $label = "👉 {$envDef->key}";
+        $hint = $envDef->description;
 
         if ($defaultValue !== null) {
             $displayDefault = \is_bool($defaultValue) ? ($defaultValue ? 'true' : 'false') : (string) $defaultValue;
@@ -171,7 +168,7 @@ final class InteractiveWizard
             }
 
             KeyManager::setFormValue(
-                $keyName,
+                $envDef->key,
                 confirm(
                     label: $label,
                     default: (bool) $boolInitial,
@@ -183,7 +180,7 @@ final class InteractiveWizard
         }
 
         KeyManager::setFormValue(
-            $keyName,
+            $envDef->key,
             text(
                 label: $label,
                 default: (string) $initial,

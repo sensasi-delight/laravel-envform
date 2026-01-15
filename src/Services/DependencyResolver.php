@@ -12,16 +12,9 @@ final class DependencyResolver
      * Filter out any keys that shouldn't be asked for.
      */
     final public function shouldAsk(
-        string $envKey
+        EnvKeyDefinition $envDef
     ): bool {
-
-        $item = KeyManager::getConfigEnvKeys()->firstWhere('key', $envKey);
-
-        if (! $item) {
-            return true;
-        }
-
-        $configKeys = $this->resolveConfigKeys($item);
+        $configKeys = $this->resolveConfigKeys($envDef);
 
         if (empty($configKeys)) {
             return true;
@@ -43,19 +36,13 @@ final class DependencyResolver
     /**
      * Check if the given Env Key is a trigger for other dependencies.
      */
-    public function isTrigger(string $envKey): bool
+    public function isTrigger(EnvKeyDefinition $endDef): bool
     {
-        $allEnvKeys = KeyManager::getConfigEnvKeys();
-        $item = $allEnvKeys->firstWhere('key', $envKey);
-        if (! $item) {
-            return false;
-        }
-
-        $paths = $this->resolveConfigKeys($item);
+        $paths = $this->resolveConfigKeys($endDef);
         $rules = DependencyRules::getRules();
 
         foreach ($paths as $path) {
-            if (array_key_exists($path, $rules)) {
+            if (\array_key_exists($path, $rules)) {
                 return true;
             }
         }
@@ -92,24 +79,23 @@ final class DependencyResolver
         string $configKey,
         array $rules
     ): bool {
-        foreach ($rules as $triggerConfigKey => $conditions) {
-            $triggerItem = KeyManager::getConfigEnvKeys()->firstWhere('configKey', $triggerConfigKey);
+        foreach ($rules as $dependantConfigKey => $conditions) {
+            $dependantEnvDef = KeyManager::getDefinitionByConfigKey($dependantConfigKey);
 
-            if (! $triggerItem) {
+            if (! $dependantEnvDef) {
                 continue;
             }
 
-            $triggerKey = $triggerItem->key;
-            $triggerValue = KeyManager::getFormValue($triggerKey);
+            $dependantFormValue = KeyManager::getFormValue($dependantEnvDef->key);
 
-            if (! $triggerValue) {
+            if (! $dependantFormValue) {
                 continue;
             }
 
             foreach ($conditions as $expectedValue => $patterns) {
                 // If the path matches the pattern for this condition
-                // AND the trigger value matches the expected value, it is allowed.
-                if ($this->matchesPatterns($configKey, $patterns) && (string) $triggerValue === (string) $expectedValue) {
+                // AND the dependant value matches the expected value, it is allowed.
+                if ($this->matchesPatterns($configKey, $patterns) && (string) $dependantFormValue === (string) $expectedValue) {
                     return true;
                 }
             }
@@ -134,13 +120,13 @@ final class DependencyResolver
         }
 
         foreach ($rules as $dependantConfigKey => $conditions) {
-            $dependantEnvKey = KeyManager::getConfigEnvKeys()->firstWhere('configKey', $dependantConfigKey)->key ?? null;
+            $dependantEnvDef = KeyManager::getDefinitionByConfigKey($dependantConfigKey);
 
-            if (! $dependantEnvKey) {
+            if (! $dependantEnvDef) {
                 continue;
             }
 
-            $formValue = KeyManager::getFormValue($dependantEnvKey);
+            $formValue = KeyManager::getFormValue($dependantEnvDef->key);
 
             if (! $formValue || empty($conditions[$formValue])) {
                 continue;

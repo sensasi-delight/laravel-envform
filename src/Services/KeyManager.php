@@ -59,6 +59,16 @@ final class KeyManager
         return self::$foundConfigFileNames;
     }
 
+    final public static function getDefinitionByConfigKey(
+        string $configKey
+    ): ?EnvKeyDefinition {
+        return self::getConfigEnvKeys()
+            ->firstWhere(
+                'configKey',
+                $configKey
+            );
+    }
+
     /**
      * All key-value pairs found in .env
      *
@@ -144,8 +154,8 @@ final class KeyManager
         }
 
         return $allEnvKeys
-            ->filter(fn (EnvKeyDefinition $key) => $resolver
-                ->shouldAsk($key->key)
+            ->filter(fn (EnvKeyDefinition $envDef) => $resolver
+                ->shouldAsk($envDef)
             );
     }
 
