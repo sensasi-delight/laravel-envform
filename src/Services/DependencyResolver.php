@@ -14,7 +14,7 @@ final class DependencyResolver
      *    'value' => ['dependent.config.path.wildcard.*']
      * ]
      */
-    private const RULES = [
+    public const RULES = [
         'cache.default' => [
             'array' => ['cache.stores.array.*'],
             'database' => ['cache.stores.database.*'],
@@ -60,52 +60,29 @@ final class DependencyResolver
     final public function shouldAsk(
         EnvKeyDefinition $envDef
     ): bool {
-        $rules = self::RULES;
-
-        $dependentPatterns = collect($rules)->flatten()->toArray();
-        $isEnvDefHasDependant = collect($envDef->configKeys)
-            ->contains(
-                fn (string $configKey) => $this->matchesPatterns(
-                    $configKey,
-                    $dependentPatterns
-                )
-            );
-
-        if (! $isEnvDefHasDependant) {
-            return true; // No dependant considered as true
+        // If no dependencies, always ask
+        if (empty($envDef->dependencies)) {
+            return true;
         }
 
-        foreach ($envDef->configKeys as $configKey) {
-            foreach ($rules as $dependantConfigKey => $conditions) {
-                $dependantEnvKey = $this->keyManager->getDefinitionByConfigKey(
-                    $dependantConfigKey
-                );
+        foreach ($envDef->dependencies as $triggerConfigKey => $valueMap) {
+            $triggerEnvKey = $this->keyManager->getDefinitionByConfigKey($triggerConfigKey);
 
-                if (! $dependantEnvKey) {
-                    continue;
-                }
+            if (! $triggerEnvKey) {
+                continue;
+            }
 
-                $collectedDependantValue = (string) $this->keyManager
-                    ->getFormValue(
-                        $dependantEnvKey->key
-                    );
+            $currentTriggerValue = (string) $this->keyManager->getFormValue($triggerEnvKey->key);
 
-                if (! $collectedDependantValue) {
-                    continue;
-                }
+            if (! $currentTriggerValue) {
+                continue;
+            }
 
-                $patterns = $conditions[$collectedDependantValue] ?? null;
+            // Check if the current value of the trigger matches any condition for this key
+            $patterns = $valueMap[$currentTriggerValue] ?? null;
 
-                if ($patterns === null) {
-                    continue;
-                }
-
-                if ($this->matchesPatterns(
-                    $configKey,
-                    $patterns
-                )) {
-                    return true;
-                }
+            if ($patterns && $this->matchesAnyConfigKey($envDef->configKeys, $patterns)) {
+                return true;
             }
         }
 
@@ -113,15 +90,13 @@ final class DependencyResolver
     }
 
     /**
-     * Check if the given Env Key is a trigger for other dependencies.
+     * @param  string[]  $configKeys
+     * @param  string[]  $patterns
      */
-    public function isTrigger(EnvKeyDefinition $endDef): bool
+    private function matchesAnyConfigKey(array $configKeys, array $patterns): bool
     {
-        $paths = $this->resolveConfigKeys($endDef);
-        $rules = self::RULES;
-
-        foreach ($paths as $path) {
-            if (\array_key_exists($path, $rules)) {
+        foreach ($configKeys as $configKey) {
+            if ($this->matchesPatterns($configKey, $patterns)) {
                 return true;
             }
         }
@@ -141,20 +116,5 @@ final class DependencyResolver
         }
 
         return false;
-    }
-
-    /**
-     * @return string[]
-     */
-    private function resolveConfigKeys(EnvKeyDefinition $item): array
-    {
-        $configKeys = $item->configKeys;
-
-        // Fallback to legacy single configKey if empty, though DTO should handle this.
-        if (empty($configKeys) && ! empty($item->configKey)) {
-            $configKeys = [$item->configKey];
-        }
-
-        return array_filter($configKeys);
     }
 }

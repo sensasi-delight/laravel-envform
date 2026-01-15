@@ -61,6 +61,31 @@ class ConfigAnalyzer
                     $configKeys = $paths ? $paths->all() : [];
                     $configKey = $paths ? $paths->first() : '';
 
+                    // Calculate isTrigger
+                    $isTrigger = false;
+                    foreach ($configKeys as $ck) {
+                        if (array_key_exists($ck, DependencyResolver::RULES)) {
+                            $isTrigger = true;
+                            break;
+                        }
+                    }
+
+                    // Calculate dependencies
+                    $dependencies = [];
+                    foreach (DependencyResolver::RULES as $triggerKey => $conditions) {
+                        foreach ($conditions as $triggerValue => $patterns) {
+                            foreach ($configKeys as $ck) {
+                                foreach ($patterns as $pattern) {
+                                    if (fnmatch($pattern, $ck)) {
+                                        $dependencies[$triggerKey][$triggerValue] = $patterns;
+                                        // Once we find a match for this trigger+value, no need to check other patterns for this value
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     return new EnvKeyDefinition(
                         key: $item['key'],
                         default: $item['default'],
@@ -70,6 +95,8 @@ class ConfigAnalyzer
                         configKeys: $configKeys,
                         configKey: (string) $configKey,
                         currentValue: $configKey ? Config::get($configKey) : null,
+                        isTrigger: $isTrigger,
+                        dependencies: $dependencies,
                     );
                 }
             )->sortBy('key');

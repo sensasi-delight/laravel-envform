@@ -34,5 +34,18 @@ final class EnvKeyDefinition
          * Config keys where the env key is defined.
          */
         public readonly array $configKeys = [],
+
+        /**
+         * Whether this key triggers changes in other keys.
+         */
+        public readonly bool $isTrigger = false,
+
+        /**
+         * Dependencies for this key.
+         * Structure: ['triggerConfigKey' => ['value' => ['patterns']]]
+         *
+         * @var array<string, array<string, array<int, string>>>
+         */
+        public readonly array $dependencies = [],
     ) {}
 }

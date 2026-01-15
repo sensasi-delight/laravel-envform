@@ -108,9 +108,7 @@ final class InteractiveWizard
         return $this->keyManager->getShouldAskEnvKeys(
             $groupName,
         )->filter(
-            fn (EnvKeyDefinition $endDef) => $this->dependencyResolver->isTrigger(
-                $endDef,
-            )
+            fn (EnvKeyDefinition $endDef) => $endDef->isTrigger
         );
     }
 
@@ -123,9 +121,7 @@ final class InteractiveWizard
             $groupName,
         )->filter(
             fn (EnvKeyDefinition $envDef) => $envDef
-                ->group === $groupName && ! $this->dependencyResolver->isTrigger(
-                    $envDef,
-                )
+                ->group === $groupName && ! $envDef->isTrigger
         );
     }
 
