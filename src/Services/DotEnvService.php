@@ -11,7 +11,7 @@ use Symfony\Component\Finder\Finder;
 /**
  * @phpstan-type EnvValue bool|int|string|null
  */
-final class DotEnvService
+class DotEnvService
 {
     /**
      * Find available .env files in the base path.

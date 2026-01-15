@@ -12,7 +12,7 @@ use PhpParser\ParserFactory;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-final class ConfigParser
+class ConfigParser
 {
     /**
      * @return Collection<int, EnvKeyDefinition>

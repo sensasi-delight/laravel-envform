@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Config;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-final class ConfigAnalyzer
+class ConfigAnalyzer
 {
     private const ENV_PATTERN = "/env\(\s*['\"]([A-Z0-9_]+)['\"](?:\s*,\s*(['\"](.*?)['\"]|[^)]+))?\s*\)/";
 
@@ -24,7 +24,7 @@ final class ConfigAnalyzer
      *
      * @return Collection<int, EnvKeyDefinition>
      */
-    final public function analyze(): Collection
+    public function analyze(): Collection
     {
         $configPath = App::configPath();
 
