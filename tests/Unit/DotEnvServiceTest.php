@@ -73,4 +73,31 @@ EOT;
         $this->assertStringContainsString('DB_HOST=127.0.0.1', $content);
         $this->assertStringContainsString('DB_PORT=3306', $content);
     }
+
+    public function test_it_comments_out_unused_keys(): void
+    {
+        // Setup existing .env with a key that is no longer in metadata
+        File::put($this->tempFile, "OLD_KEY=some_value\nKEEP_ME=true");
+
+        $values = [
+            'KEEP_ME' => 'true',
+        ];
+        $metadata = [
+            'KEEP_ME' => 'General',
+        ];
+
+        $this->service->write($this->tempFile, $values, $metadata);
+
+        $content = File::get($this->tempFile);
+
+        // KEEP_ME should be active
+        $this->assertStringContainsString('KEEP_ME=true', $content);
+        $this->assertStringNotContainsString('# KEEP_ME=true', $content);
+
+        // OLD_KEY should be commented out
+        $this->assertStringContainsString('# OLD_KEY=some_value', $content);
+
+        // Ensure it's not active
+        $this->assertStringNotContainsString("\nOLD_KEY=some_value", "\n".$content);
+    }
 }

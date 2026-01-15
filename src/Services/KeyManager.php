@@ -166,4 +166,42 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
     ): void {
         $this->formValues[$envKey] = $value;
     }
+
+    /**
+     * Get the final list of values to write to .env, merging:
+     * 1. Form Values (User input)
+     * 2. Existing .env values
+     * 3. Current Config Values / Defaults
+     *
+     * @return array<string, bool|int|string|null>
+     */
+    public function getFinalValues(): array
+    {
+        $finalValues = [];
+
+        foreach ($this->getConfigEnvKeys() as $definition) {
+            $key = $definition->key;
+
+            // Priority 1: User Input
+            if (\array_key_exists($key, $this->formValues)) {
+                $finalValues[$key] = $this->formValues[$key];
+
+                continue;
+            }
+
+            // Priority 2: Existing .env Value
+            $existing = $this->getDotEnvValue($key);
+            if ($existing !== null) {
+                $finalValues[$key] = $existing;
+
+                continue;
+            }
+
+            // Priority 3: Current Config Value (from application runtime)
+            // Priority 4: Default Value (from env() call signature)
+            $finalValues[$key] = $definition->currentValue ?? $definition->default;
+        }
+
+        return $finalValues;
+    }
 }

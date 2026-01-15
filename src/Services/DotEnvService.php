@@ -13,6 +13,13 @@ use Symfony\Component\Finder\Finder;
  */
 class DotEnvService
 {
+    public function __construct(
+        /**
+         * HOTFIX: `KeyManager` circular dependency by disabling DEPENDENCY INJECTION
+         */
+        // private readonly KeyManager $keyManager
+    ) {}
+
     /**
      * Find available .env files in the base path.
      *
@@ -69,17 +76,37 @@ class DotEnvService
      * Update or create a .env file with given values and metadata.
      *
      * @param  array<string, EnvValue>  $values
-     * @param  array<string, string>  $metadata  [ENV_KEY => GroupName]
      */
-    public function write(string $path, array $values, array $metadata = []): void
+    public function write(string $path, array $values): void
     {
+        /**
+         * @todo WILL use EnvKeyDefinition instead remapping into this array
+         *
+         * @var array<string, string> $metadata  [ENV_KEY => GroupName]
+         */
+        $metadata = app(KeyManager::class)->getShouldAskEnvKeys()->pluck('group', 'key')->toArray();
+
         $existing = $this->read($path)->toArray();
-        $all = array_merge($existing, $values);
+
+        // 1. Active Values: Everything passed in (which now includes backfilled defaults/currents)
+        $activeValues = $values;
+
+        // 2. Deprecated Values: Keys in the existing file that are NO LONGER in the config metadata
+        $deprecatedValues = array_diff_key($existing, $metadata);
 
         $grouped = [];
-        foreach ($all as $key => $value) {
+
+        // Group Active Keys by their configuration file name
+        foreach ($activeValues as $key => $value) {
             $group = $metadata[$key] ?? 'Other / Manually Added';
             $grouped[$group][$key] = $value;
+        }
+
+        // Group Deprecated Keys into a 'ZZZ_Deprecated' group to ensure they sort to the bottom
+        if (! empty($deprecatedValues)) {
+            foreach ($deprecatedValues as $key => $value) {
+                $grouped['ZZZ_Deprecated'][$key] = $value;
+            }
         }
 
         ksort($grouped);
@@ -90,10 +117,15 @@ class DotEnvService
         ];
 
         foreach ($grouped as $groupName => $items) {
+            $isDeprecated = ($groupName === 'ZZZ_Deprecated');
+            $displayName = $isDeprecated ? 'Deprecated / Unused' : $groupName;
+
             $content[] = '';
-            $content[] = "# --- {$groupName} ---";
+            $content[] = "# --- {$displayName} ---";
+
             foreach ($items as $key => $value) {
-                $content[] = "{$key}=".$this->formatValue($value);
+                $line = "{$key}=".$this->formatValue($value);
+                $content[] = $isDeprecated ? "# {$line}" : $line;
             }
         }
 
@@ -107,6 +139,10 @@ class DotEnvService
         }
 
         if (\is_null($value)) {
+            return 'null';
+        }
+
+        if (\is_array($value)) {
             return 'null';
         }
 

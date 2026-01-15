@@ -95,8 +95,10 @@ final class Main extends Command
     {
         clear();
 
-        if (empty($this->keyManager->getFormValues())) {
-            warning('⚠️  No changes to save.');
+        $finalValues = $this->keyManager->getFinalValues();
+
+        if (empty($finalValues)) {
+            warning('⚠️  No values to save.');
 
             return self::SUCCESS;
         }
@@ -127,8 +129,7 @@ final class Main extends Command
 
         $this->dotEnvService->write(
             $targetPath,
-            $this->keyManager->getFormValues(),
-            $this->keyManager->getConfigEnvKeys()->pluck('group', 'key')->toArray()
+            $finalValues,
         );
         info("✅ Successfully updated {$filename} file!");
 
