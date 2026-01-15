@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\Contracts\FormValueProvider;
 use EnvForm\DTO\EnvKeyDefinition;
 
 final class DependencyResolver
 {
+    public function __construct(
+        private readonly FormValueProvider $provider
+    ) {}
+
     /**
      * Filter out any keys that shouldn't be asked for.
      */
@@ -80,13 +85,13 @@ final class DependencyResolver
         array $rules
     ): bool {
         foreach ($rules as $dependantConfigKey => $conditions) {
-            $dependantEnvDef = KeyManager::getDefinitionByConfigKey($dependantConfigKey);
+            $dependantEnvDef = $this->provider->getDefinitionByConfigKey($dependantConfigKey);
 
             if (! $dependantEnvDef) {
                 continue;
             }
 
-            $dependantFormValue = KeyManager::getFormValue($dependantEnvDef->key);
+            $dependantFormValue = $this->provider->getFormValue($dependantEnvDef->key);
 
             if (! $dependantFormValue) {
                 continue;
@@ -120,13 +125,13 @@ final class DependencyResolver
         }
 
         foreach ($rules as $dependantConfigKey => $conditions) {
-            $dependantEnvDef = KeyManager::getDefinitionByConfigKey($dependantConfigKey);
+            $dependantEnvDef = $this->provider->getDefinitionByConfigKey($dependantConfigKey);
 
             if (! $dependantEnvDef) {
                 continue;
             }
 
-            $formValue = KeyManager::getFormValue($dependantEnvDef->key);
+            $formValue = $this->provider->getFormValue($dependantEnvDef->key);
 
             if (! $formValue || empty($conditions[$formValue])) {
                 continue;

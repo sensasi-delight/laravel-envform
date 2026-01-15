@@ -145,7 +145,7 @@ final class KeyManager
     final public static function getShouldAskEnvKeys(
         ?string $group = null,
     ): Collection {
-        $resolver = new DependencyResolver;
+        $resolver = new DependencyResolver(new KeyManagerFormValueProvider);
 
         $allEnvKeys = self::getConfigEnvKeys();
 

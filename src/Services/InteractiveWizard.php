@@ -23,7 +23,7 @@ final class InteractiveWizard
 
     final public function __construct()
     {
-        $this->dependencyResolver = new DependencyResolver;
+        $this->dependencyResolver = new DependencyResolver(new KeyManagerFormValueProvider);
     }
 
     final public function run(): void
