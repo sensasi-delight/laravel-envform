@@ -127,9 +127,12 @@ final class Main extends Command
             break;
         }
 
+        $metadata = $this->keyManager->getConfigEnvKeys()->pluck('group', 'key')->toArray();
+
         $this->dotEnvService->write(
             $targetPath,
             $finalValues,
+            $metadata
         );
         info("✅ Successfully updated {$filename} file!");
 

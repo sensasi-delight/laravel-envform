@@ -13,12 +13,7 @@ use Symfony\Component\Finder\Finder;
  */
 class DotEnvService
 {
-    public function __construct(
-        /**
-         * HOTFIX: `KeyManager` circular dependency by disabling DEPENDENCY INJECTION
-         */
-        // private readonly KeyManager $keyManager
-    ) {}
+    public function __construct() {}
 
     /**
      * Find available .env files in the base path.
@@ -76,16 +71,10 @@ class DotEnvService
      * Update or create a .env file with given values and metadata.
      *
      * @param  array<string, EnvValue>  $values
+     * @param  array<string, string>  $metadata  [ENV_KEY => GroupName]
      */
-    public function write(string $path, array $values): void
+    public function write(string $path, array $values, array $metadata = []): void
     {
-        /**
-         * @todo WILL use EnvKeyDefinition instead remapping into this array
-         *
-         * @var array<string, string> $metadata  [ENV_KEY => GroupName]
-         */
-        $metadata = app(KeyManager::class)->getShouldAskEnvKeys()->pluck('group', 'key')->toArray();
-
         $existing = $this->read($path)->toArray();
 
         // 1. Active Values: Everything passed in (which now includes backfilled defaults/currents)
