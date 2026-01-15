@@ -51,7 +51,7 @@ final class RuleEngine
     ];
 
     public function __construct(
-        private readonly EnvironmentState $state
+        private readonly UserSession $state
     ) {}
 
     /**

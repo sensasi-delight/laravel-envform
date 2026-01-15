@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace EnvForm\Console\Commands;
 
 use EnvForm\Services\EnvFile;
-use EnvForm\Services\EnvironmentState;
+use EnvForm\Services\EnvManager;
+use EnvForm\Services\EnvRegistry;
 use EnvForm\Services\Wizard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
@@ -30,12 +31,11 @@ final class Main extends Command
      */
     protected $description = 'Interactively manage .env file based on project analysis.';
 
-    private string $targetEnvFile = '.env';
-
     final public function __construct(
         private readonly Wizard $wizard,
         private readonly EnvFile $envFile,
-        private readonly EnvironmentState $state
+        private readonly EnvManager $envManager,
+        private readonly EnvRegistry $registry
     ) {
         parent::__construct();
     }
@@ -46,10 +46,9 @@ final class Main extends Command
         $this->displayWelcome();
 
         $envFile = $this->selectEnvFile();
-        $this->state->setTargetEnvFile($envFile);
-        $this->targetEnvFile = $envFile;
+        $this->envManager->setTargetFile($envFile);
 
-        if ($this->state->all()->isEmpty()) {
+        if ($this->registry->all()->isEmpty()) {
             warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
 
             return self::FAILURE;
@@ -95,9 +94,7 @@ final class Main extends Command
     {
         clear();
 
-        $finalValues = $this->state->getFinalValues();
-
-        if (empty($finalValues)) {
+        if ($this->registry->all()->isEmpty()) {
             warning('⚠️  No values to save.');
 
             return self::SUCCESS;
@@ -108,10 +105,11 @@ final class Main extends Command
 
             $filename = text(
                 label: '📄 Enter the output filename',
-                default: $this->targetEnvFile,
+                default: $this->envManager->getTargetFile(),
                 hint: 'The file will be saved in the project root.'
             );
 
+            $this->envManager->setTargetFile($filename);
             $targetPath = App::basePath($filename);
 
             if (
@@ -127,13 +125,7 @@ final class Main extends Command
             break;
         }
 
-        $metadata = $this->state->all()->pluck('group', 'key')->toArray();
-
-        $this->envFile->write(
-            $targetPath,
-            $finalValues,
-            $metadata
-        );
+        $this->envManager->save();
         info("✅ Successfully updated {$filename} file!");
 
         return self::SUCCESS;

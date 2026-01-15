@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace EnvForm\Services;
 
 use EnvForm\DTO\EnvVar;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
@@ -20,7 +19,9 @@ final class Wizard
 {
     final public function __construct(
         private readonly RuleEngine $ruleEngine,
-        private readonly EnvironmentState $state
+        private readonly EnvRegistry $registry,
+        private readonly UserSession $session,
+        private readonly EnvManager $envManager
     ) {}
 
     final public function run(): void
@@ -51,20 +52,21 @@ final class Wizard
      */
     private function buildMenuOptions(): array
     {
-        $fileNames = $this->state->getFoundConfigFileNames();
+        $fileNames = $this->registry->groups();
 
         $menuOptions = [];
         foreach ($fileNames as $fileName) {
-            $envKeys = $this->state->pending($fileName);
+            $envVars = $this->registry->all()->filter(fn (EnvVar $v) => $v->group === $fileName);
+            $askVars = $envVars->filter(fn (EnvVar $v) => $this->ruleEngine->shouldAsk($v));
 
-            $total = str_pad((string) $envKeys->count(), 2, ' ', STR_PAD_LEFT);
+            $total = str_pad((string) $askVars->count(), 2, ' ', STR_PAD_LEFT);
 
             $filled = str_pad(
-                (string) $envKeys->filter(
+                (string) $askVars->filter(
                     function (EnvVar $item) {
                         $key = $item->key;
-                        $val = $this->state->input($key)
-                            ?? $this->state->getDotEnvValue($key);
+                        $val = $this->session->input($key)
+                            ?? $this->envManager->getExistingValue($key);
 
                         return ! empty($val) || $val === '0' || $val === false;
                     }
@@ -87,49 +89,22 @@ final class Wizard
     {
         info("🛠️  Configuring settings for: {$groupName}");
 
-        foreach (
-            $this->getTriggerKeys($groupName) as $envVar
-        ) {
+        $vars = $this->registry->all()
+            ->filter(fn (EnvVar $v) => $v->group === $groupName)
+            ->filter(fn (EnvVar $v) => $this->ruleEngine->shouldAsk($v));
+
+        foreach ($vars->filter(fn ($v) => $v->isTrigger) as $envVar) {
             $this->askForValue($envVar);
         }
 
-        foreach (
-            $this->getNonTriggerKeys($groupName) as $envVar
-        ) {
+        foreach ($vars->filter(fn ($v) => ! $v->isTrigger) as $envVar) {
             $this->askForValue($envVar);
         }
-    }
-
-    /**
-     * @return Collection<int, EnvVar>
-     */
-    private function getTriggerKeys(string $groupName): Collection
-    {
-        return $this->state->pending(
-            $groupName,
-        )->filter(
-            fn (EnvVar $endDef) => $endDef->isTrigger
-        );
-    }
-
-    /**
-     * @return Collection<int, EnvVar>
-     */
-    private function getNonTriggerKeys(string $groupName): Collection
-    {
-        return $this->state->pending(
-            $groupName,
-        )->filter(
-            fn (EnvVar $envVar) => $envVar
-                ->group === $groupName && ! $envVar->isTrigger
-        );
     }
 
     private function askForValue(EnvVar $envVar): void
     {
-        if (! $this->ruleEngine->shouldAsk(
-            $envVar
-        )) {
+        if (! $this->ruleEngine->shouldAsk($envVar)) {
             return;
         }
 
@@ -140,9 +115,9 @@ final class Wizard
             return;
         }
 
-        $currentValue = $this->state->input($envVar->key)
+        $currentValue = $this->session->input($envVar->key)
             ?? Config::get($envVar->configKey)
-            ?? $this->state->getDotEnvValue($envVar->key);
+            ?? $this->envManager->getExistingValue($envVar->key);
 
         $defaultValue = $envVar->default;
 
@@ -162,7 +137,7 @@ final class Wizard
                 $boolInitial = strtolower($initial) === 'true';
             }
 
-            $this->state->setFormValue(
+            $this->session->set(
                 $envVar->key,
                 confirm(
                     label: $label,
@@ -174,7 +149,7 @@ final class Wizard
             return;
         }
 
-        $this->state->setFormValue(
+        $this->session->set(
             $envVar->key,
             text(
                 label: $label,
@@ -190,8 +165,8 @@ final class Wizard
             return false;
         }
 
-        $currentValue = $this->state->input($keyName)
-            ?? $this->state->getDotEnvValue($keyName);
+        $currentValue = $this->session->input($keyName)
+            ?? $this->envManager->getExistingValue($keyName);
 
         if (! confirm(
             label: '🔑 Do you want to generate/regenerate APP_KEY?',
@@ -205,7 +180,7 @@ final class Wizard
             parameters: ['--show' => true]
         );
 
-        $this->state->setFormValue(
+        $this->session->set(
             $keyName,
             trim(Artisan::output())
         );
@@ -233,7 +208,7 @@ final class Wizard
             return false;
         }
 
-        $this->state->setFormValue(
+        $this->session->set(
             $ekd->key,
             $this->buildSelect(
                 label: "🔌 {$ekd->key}",
@@ -268,7 +243,7 @@ final class Wizard
             ...$additionalOptions,
         ];
 
-        $defaultValue = $this->state->input($envVar->key)
+        $defaultValue = $this->session->input($envVar->key)
             ?? $envVar->currentValue
             ?? $envVar->default
             ?? $additionalDefaultOption;
@@ -284,19 +259,13 @@ final class Wizard
 
     private function showSummaryTable(): void
     {
+        $summary = $this->envManager->getSummary();
+
         table(
+            ['Summary', ''],
             [
-                'Summary',
-                '',
-            ],
-            [
-                [
-                    'ENV keys need to be configured',
-                    (string) $this->state->pending()->count(),
-                ], [
-                    'ENV keys found in .env file',
-                    (string) $this->state->getCountDotEnvKeyValuePairs(),
-                ],
+                ['ENV vars need configuration', (string) $summary['pending']],
+                ['Existing vars in file', (string) $summary['existing']],
             ]
         );
     }
