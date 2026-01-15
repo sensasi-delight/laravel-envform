@@ -11,7 +11,7 @@ use Symfony\Component\Finder\Finder;
 /**
  * @phpstan-type EnvValue bool|int|string|null
  */
-class DotEnvService
+class EnvFile
 {
     public function __construct() {}
 

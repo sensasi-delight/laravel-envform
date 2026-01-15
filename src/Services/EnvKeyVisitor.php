@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
-use EnvForm\DTO\EnvKeyDefinition;
+use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use PhpParser\Node;
@@ -15,7 +15,7 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
     /** @var string[] */
     private array $stack = [];
 
-    /** @var Collection<int, EnvKeyDefinition> */
+    /** @var Collection<int, EnvVar> */
     private Collection $foundItems;
 
     public function __construct(
@@ -47,7 +47,7 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
     }
 
     /**
-     * @return Collection<int, EnvKeyDefinition>
+     * @return Collection<int, EnvVar>
      */
     public function getFoundItems(): Collection
     {
@@ -90,7 +90,7 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
             $defaultValue = $this->parseDefaultValue($args[1]->value);
         }
 
-        $this->foundItems->push(new EnvKeyDefinition(
+        $this->foundItems->push(new EnvVar(
             key: $envKey,
             default: $defaultValue,
             file: $this->filename,

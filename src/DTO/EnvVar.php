@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\DTO;
 
-final class EnvKeyDefinition
+final class EnvVar
 {
     /**
      * @param  string[]  $configKeys

@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
-use EnvForm\DTO\EnvKeyDefinition;
+use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 
 use function Laravel\Prompts\note;
 
-class KeyManager implements \EnvForm\Contracts\FormValueProvider
+class EnvironmentState implements \EnvForm\Contracts\InputProvider
 {
     /**
      * All keys found in config/*.php
      *
-     * @var Collection<int, EnvKeyDefinition>
+     * @var Collection<int, EnvVar>
      */
     private Collection $configEnvKeys;
 
@@ -39,17 +39,17 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
     private array $formValues = [];
 
     public function __construct(
-        private readonly ConfigAnalyzer $analyzer,
-        private readonly DotEnvService $dotEnvService
+        private readonly Scanner $scanner,
+        private readonly EnvFile $envFile
     ) {}
 
     /**
-     * @return Collection<int, EnvKeyDefinition>
+     * @return Collection<int, EnvVar>
      */
-    public function getConfigEnvKeys(): Collection
+    public function all(): Collection
     {
         if (! isset($this->configEnvKeys)) {
-            $configEnvKeys = $this->analyzer->analyze();
+            $configEnvKeys = $this->scanner->scan();
 
             note(
                 "✨ Found {$configEnvKeys->count()} potential environment variables to configure."
@@ -68,7 +68,7 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
     public function getFoundConfigFileNames(): Collection
     {
         if (! isset($this->foundConfigFileNames)) {
-            $this->getConfigEnvKeys();
+            $this->all();
         }
 
         return $this->foundConfigFileNames;
@@ -76,8 +76,8 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
 
     public function getDefinitionByConfigKey(
         string $configKey
-    ): ?EnvKeyDefinition {
-        return $this->getConfigEnvKeys()
+    ): ?EnvVar {
+        return $this->all()
             ->firstWhere(
                 'configKey',
                 $configKey
@@ -101,7 +101,7 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
             if (file_exists($dotEnvPath)) {
                 note("📖 Loading existing values from [{$dotEnvPath}]...");
 
-                $this->dotEnvKeyValuePairs = $this->dotEnvService->read($dotEnvPath)
+                $this->dotEnvKeyValuePairs = $this->envFile->read($dotEnvPath)
                     ->map(fn ($val, $key) => (object) ['key' => $key, 'value' => $val])
                     ->values();
             } else {
@@ -126,21 +126,21 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
     }
 
     /**
-     * @return Collection<int, EnvKeyDefinition>
+     * @return Collection<int, EnvVar>
      */
-    public function getShouldAskEnvKeys(
+    public function pending(
         ?string $group = null,
     ): Collection {
-        $resolver = new DependencyResolver($this);
+        $ruleEngine = new RuleEngine($this);
 
-        $allEnvKeys = $this->getConfigEnvKeys();
+        $allEnvKeys = $this->all();
 
         if ($group) {
-            $allEnvKeys = $allEnvKeys->filter(fn (EnvKeyDefinition $key) => $key->group === $group);
+            $allEnvKeys = $allEnvKeys->filter(fn (EnvVar $key) => $key->group === $group);
         }
 
         return $allEnvKeys
-            ->filter(fn (EnvKeyDefinition $envDef) => $resolver
+            ->filter(fn (EnvVar $envDef) => $ruleEngine
                 ->shouldAsk($envDef)
             );
     }
@@ -155,7 +155,7 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
         return $this->formValues;
     }
 
-    public function getFormValue(string $envKey): bool|int|string|null
+    public function input(string $envKey): bool|int|string|null
     {
         return $this->formValues[$envKey] ?? null;
     }
@@ -179,7 +179,7 @@ class KeyManager implements \EnvForm\Contracts\FormValueProvider
     {
         $finalValues = [];
 
-        foreach ($this->getConfigEnvKeys() as $definition) {
+        foreach ($this->all() as $definition) {
             $key = $definition->key;
 
             // Priority 1: User Input

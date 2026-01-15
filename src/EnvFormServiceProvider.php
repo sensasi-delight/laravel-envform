@@ -11,8 +11,8 @@ final class EnvFormServiceProvider extends ServiceProvider
 {
     final public function register(): void
     {
-        $this->app->singleton(Services\KeyManager::class);
-        $this->app->bind(Contracts\FormValueProvider::class, Services\KeyManager::class);
+        $this->app->singleton(Services\EnvironmentState::class);
+        $this->app->bind(Contracts\InputProvider::class, Services\EnvironmentState::class);
     }
 
     final public function boot(): void

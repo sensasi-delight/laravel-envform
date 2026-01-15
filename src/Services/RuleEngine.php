@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
-use EnvForm\DTO\EnvKeyDefinition;
+use EnvForm\DTO\EnvVar;
 
-final class DependencyResolver
+final class RuleEngine
 {
     /**
      * Rules definition:
@@ -51,14 +51,14 @@ final class DependencyResolver
     ];
 
     public function __construct(
-        private readonly KeyManager $keyManager
+        private readonly EnvironmentState $state
     ) {}
 
     /**
      * Filter out any keys that shouldn't be asked for.
      */
     final public function shouldAsk(
-        EnvKeyDefinition $envDef
+        EnvVar $envDef
     ): bool {
         // If no dependencies, always ask
         if (empty($envDef->dependencies)) {
@@ -66,13 +66,13 @@ final class DependencyResolver
         }
 
         foreach ($envDef->dependencies as $triggerConfigKey => $valueMap) {
-            $triggerEnvKey = $this->keyManager->getDefinitionByConfigKey($triggerConfigKey);
+            $triggerEnvKey = $this->state->getDefinitionByConfigKey($triggerConfigKey);
 
             if (! $triggerEnvKey) {
                 continue;
             }
 
-            $currentTriggerValue = (string) $this->keyManager->getFormValue($triggerEnvKey->key);
+            $currentTriggerValue = (string) $this->state->input($triggerEnvKey->key);
 
             if (! $currentTriggerValue) {
                 continue;

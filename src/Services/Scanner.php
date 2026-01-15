@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
-use EnvForm\DTO\EnvKeyDefinition;
+use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
@@ -13,18 +13,18 @@ use PhpParser\ParserFactory;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-class ConfigAnalyzer
+class Scanner
 {
     private const ENV_PATTERN = "/env\(\s*['\"]([A-Z0-9_]+)['\"](?:\s*,\s*(['\"](.*?)['\"]|[^)]+))?\s*\)/";
 
     public function __construct() {}
 
     /**
-     * Analyze config directory for env() calls.
+     * Scan config directory for env() calls.
      *
-     * @return Collection<int, EnvKeyDefinition>
+     * @return Collection<int, EnvVar>
      */
-    public function analyze(): Collection
+    public function scan(): Collection
     {
         $configPath = App::configPath();
 
@@ -46,7 +46,7 @@ class ConfigAnalyzer
         $astRaw = $this->parseConfigDirectory($configPath);
 
         $astMap = $astRaw->mapToGroups(
-            fn (EnvKeyDefinition $item) => [
+            fn (EnvVar $item) => [
                 $item->key => $item->configKey,
             ]
         );
@@ -64,7 +64,7 @@ class ConfigAnalyzer
                     // Calculate isTrigger
                     $isTrigger = false;
                     foreach ($configKeys as $ck) {
-                        if (array_key_exists($ck, DependencyResolver::RULES)) {
+                        if (array_key_exists($ck, RuleEngine::RULES)) {
                             $isTrigger = true;
                             break;
                         }
@@ -72,7 +72,7 @@ class ConfigAnalyzer
 
                     // Calculate dependencies
                     $dependencies = [];
-                    foreach (DependencyResolver::RULES as $triggerKey => $conditions) {
+                    foreach (RuleEngine::RULES as $triggerKey => $conditions) {
                         foreach ($conditions as $triggerValue => $patterns) {
                             foreach ($configKeys as $ck) {
                                 foreach ($patterns as $pattern) {
@@ -86,7 +86,7 @@ class ConfigAnalyzer
                         }
                     }
 
-                    return new EnvKeyDefinition(
+                    return new EnvVar(
                         key: $item['key'],
                         default: $item['default'],
                         file: $item['file'],
@@ -103,7 +103,7 @@ class ConfigAnalyzer
     }
 
     /**
-     * @return Collection<int, EnvKeyDefinition>
+     * @return Collection<int, EnvVar>
      */
     private function parseConfigDirectory(string $configPath): Collection
     {
@@ -113,7 +113,7 @@ class ConfigAnalyzer
             ->name('*.php');
 
         $parser = (new ParserFactory)->createForNewestSupportedVersion();
-        /** @var Collection<int, EnvKeyDefinition> $foundItems */
+        /** @var Collection<int, EnvVar> $foundItems */
         $foundItems = new Collection;
 
         foreach ($files as $file) {
@@ -126,7 +126,7 @@ class ConfigAnalyzer
 
     /**
      * @param  \PhpParser\Parser  $parser
-     * @return Collection<int, EnvKeyDefinition>
+     * @return Collection<int, EnvVar>
      */
     private function parseFile(SplFileInfo $file, $parser): Collection
     {

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace EnvForm\Console\Commands;
 
-use EnvForm\Services\DotEnvService;
-use EnvForm\Services\InteractiveWizard;
-use EnvForm\Services\KeyManager;
+use EnvForm\Services\EnvFile;
+use EnvForm\Services\EnvironmentState;
+use EnvForm\Services\Wizard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
 
@@ -33,9 +33,9 @@ final class Main extends Command
     private string $targetEnvFile = '.env';
 
     final public function __construct(
-        private readonly InteractiveWizard $wizard,
-        private readonly DotEnvService $dotEnvService,
-        private readonly KeyManager $keyManager
+        private readonly Wizard $wizard,
+        private readonly EnvFile $envFile,
+        private readonly EnvironmentState $state
     ) {
         parent::__construct();
     }
@@ -46,10 +46,10 @@ final class Main extends Command
         $this->displayWelcome();
 
         $envFile = $this->selectEnvFile();
-        $this->keyManager->setTargetEnvFile($envFile);
+        $this->state->setTargetEnvFile($envFile);
         $this->targetEnvFile = $envFile;
 
-        if ($this->keyManager->getConfigEnvKeys()->isEmpty()) {
+        if ($this->state->all()->isEmpty()) {
             warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
 
             return self::FAILURE;
@@ -62,7 +62,7 @@ final class Main extends Command
 
     private function selectEnvFile(): string
     {
-        $options = $this->dotEnvService->findFiles(App::basePath());
+        $options = $this->envFile->findFiles(App::basePath());
 
         // Add option for new file
         $options['NEW'] = '➕ Create New File...';
@@ -95,7 +95,7 @@ final class Main extends Command
     {
         clear();
 
-        $finalValues = $this->keyManager->getFinalValues();
+        $finalValues = $this->state->getFinalValues();
 
         if (empty($finalValues)) {
             warning('⚠️  No values to save.');
@@ -127,9 +127,9 @@ final class Main extends Command
             break;
         }
 
-        $metadata = $this->keyManager->getConfigEnvKeys()->pluck('group', 'key')->toArray();
+        $metadata = $this->state->all()->pluck('group', 'key')->toArray();
 
-        $this->dotEnvService->write(
+        $this->envFile->write(
             $targetPath,
             $finalValues,
             $metadata
