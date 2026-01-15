@@ -62,89 +62,23 @@ final class DependencyResolver
         }
 
         $rules = DependencyRules::getRules();
+        $matchedAny = false;
 
-        // 1. Check if an explicit rule allows this path
-        if ($this->isExplicitlyAllowed($configKey, $rules)) {
-            return true;
-        }
-
-        // 2. Check if an implicit rule denies this path (i.e. it falls under a governed area but wasn't allowed)
-        if ($this->isImplicitlyDenied($configKey, $rules)) {
-            return false;
-        }
-
-        // 3. Default allow
-        return true;
-    }
-
-    /**
-     * @param  array<string, array<string, array<int, string>>>  $rules
-     */
-    private function isExplicitlyAllowed(
-        string $configKey,
-        array $rules
-    ): bool {
-        foreach ($rules as $dependantConfigKey => $conditions) {
-            $dependantEnvDef = $this->provider->getDefinitionByConfigKey($dependantConfigKey);
-
-            if (! $dependantEnvDef) {
-                continue;
-            }
-
-            $dependantFormValue = $this->provider->getFormValue($dependantEnvDef->key);
-
-            if (! $dependantFormValue) {
-                continue;
-            }
-
+        foreach ($rules as $dependantKey => $conditions) {
             foreach ($conditions as $expectedValue => $patterns) {
-                // If the path matches the pattern for this condition
-                // AND the dependant value matches the expected value, it is allowed.
-                if ($this->matchesPatterns($configKey, $patterns) && (string) $dependantFormValue === (string) $expectedValue) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param  array<string, array<string, array<int, string>>>  $rules
-     */
-    private function isImplicitlyDenied(string $configKey, array $rules): bool
-    {
-        foreach ($rules as $conditions) {
-            foreach ($conditions as $patterns) {
                 if ($this->matchesPatterns($configKey, $patterns)) {
-                    // It matches a restrictive pattern, but wasn't explicitly allowed above.
-                    // Therefore it is hidden/denied.
-                    return true;
+                    $matchedAny = true;
+                    $def = $this->provider->getDefinitionByConfigKey($dependantKey);
+                    $val = $def ? $this->provider->getFormValue($def->key) : null;
+
+                    if ((string) $val === (string) $expectedValue) {
+                        return true;
+                    }
                 }
             }
         }
 
-        foreach ($rules as $dependantConfigKey => $conditions) {
-            $dependantEnvDef = $this->provider->getDefinitionByConfigKey($dependantConfigKey);
-
-            if (! $dependantEnvDef) {
-                continue;
-            }
-
-            $formValue = $this->provider->getFormValue($dependantEnvDef->key);
-
-            if (! $formValue || empty($conditions[$formValue])) {
-                continue;
-            }
-
-            $patterns = $conditions[$formValue];
-
-            if (! $this->matchesPatterns($configKey, $patterns)) {
-                return true;
-            }
-        }
-
-        return false;
+        return ! $matchedAny;
     }
 
     /**

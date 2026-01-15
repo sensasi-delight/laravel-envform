@@ -16,7 +16,7 @@ final class DependencyResolverTest extends TestCase
     {
         $mockProvider = $this->createMockProvider();
         $resolver = new DependencyResolver($mockProvider);
-        
+
         $envDef = $this->createDef('APP_NAME', '');
 
         $this->assertTrue($resolver->shouldAsk($envDef));
@@ -27,10 +27,10 @@ final class DependencyResolverTest extends TestCase
         // REDIS_HOST depends on cache.default=redis
         // cache.default is mapped to CACHE_STORE
         // CACHE_STORE is not set, so REDIS_HOST should be skipped
-        
+
         $mockProvider = $this->createMockProvider();
         $resolver = new DependencyResolver($mockProvider);
-        
+
         $envDef = $this->createDef('REDIS_HOST', 'database.redis.default.host');
 
         $this->assertFalse($resolver->shouldAsk($envDef));
@@ -127,7 +127,8 @@ final class DependencyResolverTest extends TestCase
         array $formValues = [],
         array $definitions = []
     ): FormValueProvider {
-        return new class($formValues, $definitions) implements FormValueProvider {
+        return new class($formValues, $definitions) implements FormValueProvider
+        {
             public function __construct(
                 private array $formValues,
                 private array $definitions

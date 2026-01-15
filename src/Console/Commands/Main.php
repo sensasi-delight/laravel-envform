@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Console\Commands;
 
-use EnvForm\Services\EnvWriter;
+use EnvForm\Services\DotEnvService;
 use EnvForm\Services\InteractiveWizard;
 use EnvForm\Services\KeyManager;
 use Illuminate\Console\Command;
@@ -88,8 +88,9 @@ final class Main extends Command
             break;
         }
 
-        $writer = new EnvWriter($targetPath);
-        $writer->update(
+        $service = app(DotEnvService::class);
+        $service->write(
+            $targetPath,
             KeyManager::getFormValues(),
             KeyManager::getConfigEnvKeys()->pluck('group', 'key')->toArray()
         );

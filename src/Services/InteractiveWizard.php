@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\Contracts\FormValueProvider;
 use EnvForm\DTO\EnvKeyDefinition;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
-use function EnvForm\addLeadingWhitespace;
 use function Laravel\Prompts\clear;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
@@ -23,7 +23,18 @@ final class InteractiveWizard
 
     final public function __construct()
     {
-        $this->dependencyResolver = new DependencyResolver(new KeyManagerFormValueProvider);
+        $this->dependencyResolver = new DependencyResolver(new class implements FormValueProvider
+        {
+            public function getFormValue(string $envKey): mixed
+            {
+                return KeyManager::getFormValue($envKey);
+            }
+
+            public function getDefinitionByConfigKey(string $configKey): ?EnvKeyDefinition
+            {
+                return KeyManager::getDefinitionByConfigKey($configKey);
+            }
+        });
     }
 
     final public function run(): void
@@ -60,10 +71,10 @@ final class InteractiveWizard
         foreach ($fileNames as $fileName) {
             $envKeys = KeyManager::getShouldAskEnvKeys($fileName);
 
-            $total = addLeadingWhitespace($envKeys->count());
+            $total = str_pad((string) $envKeys->count(), 2, ' ', STR_PAD_LEFT);
 
-            $filled = addLeadingWhitespace(
-                $envKeys->filter(
+            $filled = str_pad(
+                (string) $envKeys->filter(
                     function (EnvKeyDefinition $item) {
                         $key = $item->key;
                         $val = KeyManager::getFormValue($key)
@@ -71,7 +82,10 @@ final class InteractiveWizard
 
                         return ! empty($val) || $val === '0' || $val === false;
                     }
-                )->count()
+                )->count(),
+                2,
+                ' ',
+                STR_PAD_LEFT
             );
 
             $status = ($filled >= $total) ? '✅' : "({$filled}/{$total})";
@@ -139,8 +153,7 @@ final class InteractiveWizard
 
         if (
             $this->handleAppKey($envDef->key) ||
-            $this->handleDbConnection($envDef) ||
-            $this->handleEnvKeyWithStrictOptions($envDef)
+            $this->handleStrictKeys($envDef)
         ) {
             return;
         }
@@ -218,52 +231,23 @@ final class InteractiveWizard
         return true;
     }
 
-    private function handleEnvKeyWithStrictOptions(
-        EnvKeyDefinition $ekd
-    ): bool {
-        /**
-         * [config key => config key option reference]
-         *
-         * @var array<string, string>
-         */
-        $configKeyOptionRefs = [
+    private function handleStrictKeys(EnvKeyDefinition $ekd): bool
+    {
+        $map = [
             'broadcast.default' => 'broadcasting.connections',
             'cache.default' => 'cache.stores',
             'queue.default' => 'queue.stores',
             'filesystem.default' => 'filesystem.disks',
+            'database.default' => 'database.connections',
         ];
 
-        if (! isset($configKeyOptionRefs[$ekd->configKey])) {
-            return false;
+        $ref = $map[$ekd->configKey] ?? null;
+
+        if (! $ref && preg_match('/^DB_(.*)_CONNECTION$/', $ekd->key)) {
+            $ref = 'database.connections';
         }
 
-        $configAdditionalOptions = [
-            'cache.default' => ['null'],
-        ];
-
-        KeyManager::setFormValue(
-            $ekd->key,
-            $this->buildSelect(
-                label: "🔌 {$ekd->key}",
-                optionsRefConfigKey: $configKeyOptionRefs[$ekd->configKey],
-                envKeyDefinition: $ekd,
-                additionalOptions: $configAdditionalOptions[$ekd->configKey] ?? []
-            )
-        );
-
-        return true;
-    }
-
-    private function handleDbConnection(
-        EnvKeyDefinition $ekd
-    ): bool {
-        if (
-            $ekd->configKey !== 'database.default' &&
-            ! preg_match(
-                pattern: '/^DB_(.*)_CONNECTION$/',
-                subject: $ekd->key
-            )
-        ) {
+        if (! $ref) {
             return false;
         }
 
@@ -271,9 +255,10 @@ final class InteractiveWizard
             $ekd->key,
             $this->buildSelect(
                 label: "🔌 {$ekd->key}",
-                optionsRefConfigKey: 'database.connections',
+                optionsRefConfigKey: $ref,
                 envKeyDefinition: $ekd,
-                additionalDefaultOption: Config::get('database.default')
+                additionalOptions: $ekd->configKey === 'cache.default' ? ['null'] : [],
+                additionalDefaultOption: $ekd->configKey === 'database.default' ? Config::get('database.default') : null
             )
         );
 

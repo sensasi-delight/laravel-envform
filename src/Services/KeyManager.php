@@ -90,9 +90,11 @@ final class KeyManager
             if (file_exists($dotEnvPath)) {
                 note("📖 Loading existing values from [{$dotEnvPath}]...");
 
-                $envReader = app(EnvReader::class);
+                $service = app(DotEnvService::class);
 
-                self::$dotEnvKeyValuePairs = $envReader->read($dotEnvPath);
+                self::$dotEnvKeyValuePairs = $service->read($dotEnvPath)
+                    ->map(fn ($val, $key) => (object) ['key' => $key, 'value' => $val])
+                    ->values();
             } else {
                 note("🆕 File [{$dotEnvFile}] does not exist. Creating a new one.");
 
@@ -116,8 +118,8 @@ final class KeyManager
 
     private static function selectEnvFile(): string
     {
-        $envFileHelper = app(EnvFileHelper::class);
-        $options = $envFileHelper->findEnvFiles(App::basePath());
+        $service = app(DotEnvService::class);
+        $options = $service->findFiles(App::basePath());
 
         // Add option for new file
         $options['NEW'] = '➕ Create New File...';
@@ -145,7 +147,18 @@ final class KeyManager
     final public static function getShouldAskEnvKeys(
         ?string $group = null,
     ): Collection {
-        $resolver = new DependencyResolver(new KeyManagerFormValueProvider);
+        $resolver = new DependencyResolver(new class implements \EnvForm\Contracts\FormValueProvider
+        {
+            public function getFormValue(string $envKey): mixed
+            {
+                return KeyManager::getFormValue($envKey);
+            }
+
+            public function getDefinitionByConfigKey(string $configKey): ?EnvKeyDefinition
+            {
+                return KeyManager::getDefinitionByConfigKey($configKey);
+            }
+        });
 
         $allEnvKeys = self::getConfigEnvKeys();
 
