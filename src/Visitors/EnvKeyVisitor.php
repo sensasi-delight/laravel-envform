@@ -71,13 +71,13 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
         }
     }
 
-    private function handleFuncCall(Node\Expr\FuncCall $node): void
+    private function handleFuncCall(Node\Expr\FuncCall $funcCall): void
     {
-        if (! $node->name instanceof Node\Name || $node->name->toString() !== 'env') {
+        if (! $funcCall->name instanceof Node\Name || $funcCall->name->toString() !== 'env') {
             return;
         }
 
-        $args = $node->getArgs();
+        $args = $funcCall->getArgs();
         if (! isset($args[0]) || ! $args[0]->value instanceof Node\Scalar\String_) {
             return;
         }
@@ -85,24 +85,9 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
         $envKey = $args[0]->value->value;
         $configKey = $this->filename.'.'.implode('.', $this->stack);
 
-        // Handle default value if present (2nd argument)
         $defaultValue = null;
-        if (isset($args[1]) && $args[1]->value instanceof Node\Scalar\String_) {
-            $defaultValue = $args[1]->value->value;
-        } elseif (isset($args[1]) && $args[1]->value instanceof Node\Scalar\LNumber) {
-            $defaultValue = $args[1]->value->value;
-        } elseif (isset($args[1]) && property_exists($args[1]->value, 'name') && $args[1]->value->name instanceof Node\Name) {
-            // Handle boolean/null constants (true, false, null)
-            $constName = strtolower($args[1]->value->name->toString());
-            if ($constName === 'true') {
-                $defaultValue = true;
-            }
-            if ($constName === 'false') {
-                $defaultValue = false;
-            }
-            if ($constName === 'null') {
-                $defaultValue = null;
-            }
+        if (isset($args[1])) {
+            $defaultValue = $this->parseDefaultValue($args[1]->value);
         }
 
         $this->foundItems->push(new EnvKeyDefinition(
@@ -115,5 +100,31 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
             configKeys: [$configKey],
             currentValue: Config::get($configKey),
         ));
+    }
+
+    private function parseDefaultValue(Node\Expr $expr): mixed
+    {
+        if ($expr instanceof Node\Scalar\String_) {
+            return $expr->value;
+        }
+
+        if ($expr instanceof Node\Scalar\LNumber) {
+            return $expr->value;
+        }
+
+        if (property_exists($expr, 'name') && $expr->name instanceof Node\Name) {
+            $constName = strtolower($expr->name->toString());
+            if ($constName === 'true') {
+                return true;
+            }
+            if ($constName === 'false') {
+                return false;
+            }
+            if ($constName === 'null') {
+                return null;
+            }
+        }
+
+        return null;
     }
 }
