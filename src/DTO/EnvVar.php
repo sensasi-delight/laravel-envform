@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace EnvForm\DTO;
 
+/**
+ * Data Transfer Object representing a single environment variable.
+ * Encapsulates metadata, default values, current config values, and dependency rules.
+ */
 final class EnvVar
 {
     /**

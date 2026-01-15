@@ -8,6 +8,10 @@ use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 
+/**
+ * Orchestrator for environment file persistence and state merging.
+ * Bridges the gap between the discovered registry, user session, and the physical .env file.
+ */
 final class EnvManager
 {
     private string $targetFile = '.env';

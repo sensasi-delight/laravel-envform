@@ -19,6 +19,10 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
 
+/**
+ * The main Artisan command entry point for 'envform'.
+ * Orchestrates the overall flow: analysis, interactive setup, and file persistence.
+ */
 final class Main extends Command
 {
     /**

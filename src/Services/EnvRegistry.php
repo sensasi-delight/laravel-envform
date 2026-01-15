@@ -7,6 +7,10 @@ namespace EnvForm\Services;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 
+/**
+ * Central catalog of all environment variables discovered in the application.
+ * Provides a read-only, structured view of the application's environment requirements.
+ */
 final class EnvRegistry
 {
     /** @var Collection<int, EnvVar> */

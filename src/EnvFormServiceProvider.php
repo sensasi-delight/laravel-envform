@@ -7,6 +7,10 @@ namespace EnvForm;
 use EnvForm\Console\Commands\Main;
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * The primary service provider for the EnvForm package.
+ * Responsible for bootstrapping commands and binding core services into the Laravel container.
+ */
 final class EnvFormServiceProvider extends ServiceProvider
 {
     final public function register(): void

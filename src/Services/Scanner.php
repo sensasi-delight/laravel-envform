@@ -13,6 +13,10 @@ use PhpParser\ParserFactory;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
+/**
+ * Static analysis engine for Laravel configuration files.
+ * Uses a hybrid approach (Regex + AST) to discover env() calls and map them to config paths.
+ */
 class Scanner
 {
     private const ENV_PATTERN = "/env\(\s*['\"]([A-Z0-9_]+)['\"](?:\s*,\s*(['\"](.*?)['\"]|[^)]+))?\s*\)/";

@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\File;
 use Symfony\Component\Finder\Finder;
 
 /**
+ * Low-level service for interacting with .env files.
+ * Handles parsing raw file content and writing structured, commented environment configurations.
+ *
  * @phpstan-type EnvValue bool|int|string|null
  */
 class EnvFile

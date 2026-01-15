@@ -6,6 +6,10 @@ namespace EnvForm\Contracts;
 
 use EnvForm\DTO\EnvVar;
 
+/**
+ * Interface for providing environment variable values during the configuration process.
+ * Acts as an abstraction for retrieval logic from sessions or existing files.
+ */
 interface InputProvider
 {
     /**

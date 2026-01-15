@@ -15,6 +15,10 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 
+/**
+ * Terminal UI (TUI) orchestrator for the interactive configuration process.
+ * Manages the prompt loop, progress display, and navigation between configuration groups.
+ */
 final class Wizard
 {
     final public function __construct(

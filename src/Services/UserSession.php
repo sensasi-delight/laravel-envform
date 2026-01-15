@@ -7,6 +7,10 @@ namespace EnvForm\Services;
 use EnvForm\Contracts\InputProvider;
 use EnvForm\DTO\EnvVar;
 
+/**
+ * Temporary state container for user inputs during the CLI session.
+ * Tracks the values provided by the user before they are merged and persisted.
+ */
 final class UserSession implements InputProvider
 {
     /** @var array<string, mixed> */

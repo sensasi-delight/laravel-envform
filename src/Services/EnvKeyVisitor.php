@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Config;
 use PhpParser\Node;
 use PhpParser\NodeVisitorAbstract;
 
+/**
+ * PHP-Parser Node Visitor to extract env() calls from config arrays.
+ * Traverses the AST to build the configuration path (dot notation) for each discovered key.
+ */
 final class EnvKeyVisitor extends NodeVisitorAbstract
 {
     /** @var string[] */

@@ -6,6 +6,10 @@ namespace EnvForm\Services;
 
 use EnvForm\DTO\EnvVar;
 
+/**
+ * Deterministic engine for evaluating dependency rules between environment variables.
+ * Decides whether a variable should be prompted based on the state of its trigger variables.
+ */
 final class RuleEngine
 {
     /**
