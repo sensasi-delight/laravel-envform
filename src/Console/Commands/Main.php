@@ -31,18 +31,26 @@ final class Main extends Command
 
     private string $targetEnvFile = '.env';
 
-    final public function handle(
-    ): int {
+    final public function __construct(
+        private readonly InteractiveWizard $wizard,
+        private readonly DotEnvService $dotEnvService,
+        private readonly KeyManager $keyManager
+    ) {
+        parent::__construct();
+    }
+
+    final public function handle(): int
+    {
         clear();
         $this->displayWelcome();
 
-        if (KeyManager::getConfigEnvKeys()->isEmpty()) {
+        if ($this->keyManager->getConfigEnvKeys()->isEmpty()) {
             warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
 
             return self::FAILURE;
         }
 
-        (new InteractiveWizard)->run();
+        $this->wizard->run();
 
         return $this->saveChanges();
     }
@@ -58,7 +66,7 @@ final class Main extends Command
     {
         clear();
 
-        if (empty(KeyManager::getFormValues())) {
+        if (empty($this->keyManager->getFormValues())) {
             warning('⚠️  No changes to save.');
 
             return self::SUCCESS;
@@ -88,11 +96,10 @@ final class Main extends Command
             break;
         }
 
-        $service = app(DotEnvService::class);
-        $service->write(
+        $this->dotEnvService->write(
             $targetPath,
-            KeyManager::getFormValues(),
-            KeyManager::getConfigEnvKeys()->pluck('group', 'key')->toArray()
+            $this->keyManager->getFormValues(),
+            $this->keyManager->getConfigEnvKeys()->pluck('group', 'key')->toArray()
         );
         info("✅ Successfully updated {$filename} file!");
 

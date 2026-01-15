@@ -12,57 +12,72 @@ use function Laravel\Prompts\note;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
-final class KeyManager
+final class KeyManager implements \EnvForm\Contracts\FormValueProvider
 {
     /**
      * All keys found in config/*.php
      *
      * @var Collection<int, EnvKeyDefinition>
      */
-    private static Collection $configEnvKeys;
+    private Collection $configEnvKeys;
 
     /**
      * @var Collection<int, string>
      */
-    private static Collection $foundConfigFileNames;
+    private Collection $foundConfigFileNames;
+
+    /**
+     * @var Collection<int, object{key: string, value: string}>
+     */
+    private Collection $dotEnvKeyValuePairs;
+
+    /**
+     * All form values with format [ENV_KEY => VALUE]
+     *
+     * @var array<string, bool|int|string|null>
+     */
+    private array $formValues = [];
+
+    final public function __construct(
+        private readonly ConfigAnalyzer $analyzer,
+        private readonly DotEnvService $dotEnvService
+    ) {}
 
     /**
      * @return Collection<int, EnvKeyDefinition>
      */
-    final public static function getConfigEnvKeys(): Collection
+    final public function getConfigEnvKeys(): Collection
     {
-        if (empty(self::$configEnvKeys)) {
-            $analyzer = app(ConfigAnalyzer::class);
-
-            $configEnvKeys = $analyzer->analyze();
+        if (! isset($this->configEnvKeys)) {
+            $configEnvKeys = $this->analyzer->analyze();
 
             note(
                 "✨ Found {$configEnvKeys->count()} potential environment variables to configure."
             );
 
-            self::$configEnvKeys = $configEnvKeys;
-            self::$foundConfigFileNames = $configEnvKeys->pluck('group')->unique();
+            $this->configEnvKeys = $configEnvKeys;
+            $this->foundConfigFileNames = $configEnvKeys->pluck('group')->unique();
         }
 
-        return self::$configEnvKeys;
+        return $this->configEnvKeys;
     }
 
     /**
      * @return Collection<int, string>
      */
-    final public static function getFoundConfigFileNames(): Collection
+    final public function getFoundConfigFileNames(): Collection
     {
-        if (empty(self::$foundConfigFileNames)) {
-            self::getConfigEnvKeys();
+        if (! isset($this->foundConfigFileNames)) {
+            $this->getConfigEnvKeys();
         }
 
-        return self::$foundConfigFileNames;
+        return $this->foundConfigFileNames;
     }
 
-    final public static function getDefinitionByConfigKey(
+    final public function getDefinitionByConfigKey(
         string $configKey
     ): ?EnvKeyDefinition {
-        return self::getConfigEnvKeys()
+        return $this->getConfigEnvKeys()
             ->firstWhere(
                 'configKey',
                 $configKey
@@ -70,19 +85,12 @@ final class KeyManager
     }
 
     /**
-     * All key-value pairs found in .env
-     *
-     * @var Collection<int, object{key: string, value: string}>
-     */
-    private static Collection $dotEnvKeyValuePairs;
-
-    /**
      * @return Collection<int, object{key: string, value: string}>
      */
-    private static function getDotEnvKeyValuePairs(): Collection
+    private function getDotEnvKeyValuePairs(): Collection
     {
-        if (empty(self::$dotEnvKeyValuePairs)) {
-            $dotEnvFile = self::selectEnvFile();
+        if (! isset($this->dotEnvKeyValuePairs)) {
+            $dotEnvFile = $this->selectEnvFile();
 
             // 2. Load Existing Env
             $dotEnvPath = App::basePath($dotEnvFile);
@@ -90,36 +98,33 @@ final class KeyManager
             if (file_exists($dotEnvPath)) {
                 note("📖 Loading existing values from [{$dotEnvPath}]...");
 
-                $service = app(DotEnvService::class);
-
-                self::$dotEnvKeyValuePairs = $service->read($dotEnvPath)
+                $this->dotEnvKeyValuePairs = $this->dotEnvService->read($dotEnvPath)
                     ->map(fn ($val, $key) => (object) ['key' => $key, 'value' => $val])
                     ->values();
             } else {
                 note("🆕 File [{$dotEnvFile}] does not exist. Creating a new one.");
 
-                self::$dotEnvKeyValuePairs = collect();
+                $this->dotEnvKeyValuePairs = collect();
             }
         }
 
-        return self::$dotEnvKeyValuePairs;
+        return $this->dotEnvKeyValuePairs;
     }
 
-    final public static function getDotEnvValue(string $envKey): ?string
+    final public function getDotEnvValue(string $envKey): ?string
     {
-        return self::getDotEnvKeyValuePairs()
+        return $this->getDotEnvKeyValuePairs()
             ->firstWhere('key', $envKey)?->value;
     }
 
-    final public static function getCountDotEnvKeyValuePairs(): int
+    final public function getCountDotEnvKeyValuePairs(): int
     {
-        return self::getDotEnvKeyValuePairs()->count();
+        return $this->getDotEnvKeyValuePairs()->count();
     }
 
-    private static function selectEnvFile(): string
+    private function selectEnvFile(): string
     {
-        $service = app(DotEnvService::class);
-        $options = $service->findFiles(App::basePath());
+        $options = $this->dotEnvService->findFiles(App::basePath());
 
         // Add option for new file
         $options['NEW'] = '➕ Create New File...';
@@ -144,23 +149,12 @@ final class KeyManager
     /**
      * @return Collection<int, EnvKeyDefinition>
      */
-    final public static function getShouldAskEnvKeys(
+    final public function getShouldAskEnvKeys(
         ?string $group = null,
     ): Collection {
-        $resolver = new DependencyResolver(new class implements \EnvForm\Contracts\FormValueProvider
-        {
-            public function getFormValue(string $envKey): mixed
-            {
-                return KeyManager::getFormValue($envKey);
-            }
+        $resolver = new DependencyResolver($this);
 
-            public function getDefinitionByConfigKey(string $configKey): ?EnvKeyDefinition
-            {
-                return KeyManager::getDefinitionByConfigKey($configKey);
-            }
-        });
-
-        $allEnvKeys = self::getConfigEnvKeys();
+        $allEnvKeys = $this->getConfigEnvKeys();
 
         if ($group) {
             $allEnvKeys = $allEnvKeys->filter(fn (EnvKeyDefinition $key) => $key->group === $group);
@@ -173,31 +167,24 @@ final class KeyManager
     }
 
     /**
-     * All form values with format [ENV_KEY => VALUE]
-     *
-     * @var array<string, bool|int|string|null>
-     */
-    private static $formValues = [];
-
-    /**
      * Get all form values with format [ENV_KEY => VALUE]
      *
      * @return array<string, bool|int|string|null>
      */
-    final public static function getFormValues(): array
+    final public function getFormValues(): array
     {
-        return self::$formValues;
+        return $this->formValues;
     }
 
-    final public static function getFormValue(string $envKey): mixed
+    final public function getFormValue(string $envKey): mixed
     {
-        return self::$formValues[$envKey] ?? null;
+        return $this->formValues[$envKey] ?? null;
     }
 
-    final public static function setFormValue(
+    final public function setFormValue(
         string $envKey,
         mixed $value
     ): void {
-        self::$formValues[$envKey] = $value;
+        $this->formValues[$envKey] = $value;
     }
 }

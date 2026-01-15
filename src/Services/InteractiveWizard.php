@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
-use EnvForm\Contracts\FormValueProvider;
 use EnvForm\DTO\EnvKeyDefinition;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
@@ -19,23 +18,10 @@ use function Laravel\Prompts\text;
 
 final class InteractiveWizard
 {
-    private readonly DependencyResolver $dependencyResolver;
-
-    final public function __construct()
-    {
-        $this->dependencyResolver = new DependencyResolver(new class implements FormValueProvider
-        {
-            public function getFormValue(string $envKey): mixed
-            {
-                return KeyManager::getFormValue($envKey);
-            }
-
-            public function getDefinitionByConfigKey(string $configKey): ?EnvKeyDefinition
-            {
-                return KeyManager::getDefinitionByConfigKey($configKey);
-            }
-        });
-    }
+    final public function __construct(
+        private readonly DependencyResolver $dependencyResolver,
+        private readonly KeyManager $keyManager
+    ) {}
 
     final public function run(): void
     {
@@ -65,11 +51,11 @@ final class InteractiveWizard
      */
     private function buildMenuOptions(): array
     {
-        $fileNames = KeyManager::getFoundConfigFileNames();
+        $fileNames = $this->keyManager->getFoundConfigFileNames();
 
         $menuOptions = [];
         foreach ($fileNames as $fileName) {
-            $envKeys = KeyManager::getShouldAskEnvKeys($fileName);
+            $envKeys = $this->keyManager->getShouldAskEnvKeys($fileName);
 
             $total = str_pad((string) $envKeys->count(), 2, ' ', STR_PAD_LEFT);
 
@@ -77,8 +63,8 @@ final class InteractiveWizard
                 (string) $envKeys->filter(
                     function (EnvKeyDefinition $item) {
                         $key = $item->key;
-                        $val = KeyManager::getFormValue($key)
-                            ?? KeyManager::getDotEnvValue($key);
+                        $val = $this->keyManager->getFormValue($key)
+                            ?? $this->keyManager->getDotEnvValue($key);
 
                         return ! empty($val) || $val === '0' || $val === false;
                     }
@@ -119,7 +105,7 @@ final class InteractiveWizard
      */
     private function getTriggerKeys(string $groupName): Collection
     {
-        return KeyManager::getShouldAskEnvKeys(
+        return $this->keyManager->getShouldAskEnvKeys(
             $groupName,
         )->filter(
             fn (EnvKeyDefinition $endDef) => $this->dependencyResolver->isTrigger(
@@ -133,7 +119,7 @@ final class InteractiveWizard
      */
     private function getNonTriggerKeys(string $groupName): Collection
     {
-        return KeyManager::getShouldAskEnvKeys(
+        return $this->keyManager->getShouldAskEnvKeys(
             $groupName,
         )->filter(
             fn (EnvKeyDefinition $envDef) => $envDef
@@ -158,9 +144,9 @@ final class InteractiveWizard
             return;
         }
 
-        $currentValue = KeyManager::getFormValue($envDef->key)
+        $currentValue = $this->keyManager->getFormValue($envDef->key)
             ?? Config::get($envDef->configKey)
-            ?? KeyManager::getDotEnvValue($envDef->key);
+            ?? $this->keyManager->getDotEnvValue($envDef->key);
 
         $defaultValue = $envDef->default;
 
@@ -180,7 +166,7 @@ final class InteractiveWizard
                 $boolInitial = strtolower($initial) === 'true';
             }
 
-            KeyManager::setFormValue(
+            $this->keyManager->setFormValue(
                 $envDef->key,
                 confirm(
                     label: $label,
@@ -192,7 +178,7 @@ final class InteractiveWizard
             return;
         }
 
-        KeyManager::setFormValue(
+        $this->keyManager->setFormValue(
             $envDef->key,
             text(
                 label: $label,
@@ -208,8 +194,8 @@ final class InteractiveWizard
             return false;
         }
 
-        $currentValue = KeyManager::getFormValue($keyName)
-            ?? KeyManager::getDotEnvValue($keyName);
+        $currentValue = $this->keyManager->getFormValue($keyName)
+            ?? $this->keyManager->getDotEnvValue($keyName);
 
         if (! confirm(
             label: '🔑 Do you want to generate/regenerate APP_KEY?',
@@ -223,7 +209,7 @@ final class InteractiveWizard
             parameters: ['--show' => true]
         );
 
-        KeyManager::setFormValue(
+        $this->keyManager->setFormValue(
             $keyName,
             trim(Artisan::output())
         );
@@ -251,7 +237,7 @@ final class InteractiveWizard
             return false;
         }
 
-        KeyManager::setFormValue(
+        $this->keyManager->setFormValue(
             $ekd->key,
             $this->buildSelect(
                 label: "🔌 {$ekd->key}",
@@ -286,7 +272,7 @@ final class InteractiveWizard
             ...$additionalOptions,
         ];
 
-        $defaultValue = KeyManager::getFormValue($envKeyDefinition->key)
+        $defaultValue = $this->keyManager->getFormValue($envKeyDefinition->key)
             ?? $envKeyDefinition->currentValue
             ?? $envKeyDefinition->default
             ?? $additionalDefaultOption;
@@ -310,10 +296,10 @@ final class InteractiveWizard
             [
                 [
                     'ENV keys need to be configured',
-                    (string) KeyManager::getShouldAskEnvKeys()->count(),
+                    (string) $this->keyManager->getShouldAskEnvKeys()->count(),
                 ], [
                     'ENV keys found in .env file',
-                    (string) KeyManager::getCountDotEnvKeyValuePairs(),
+                    (string) $this->keyManager->getCountDotEnvKeyValuePairs(),
                 ],
             ]
         );
