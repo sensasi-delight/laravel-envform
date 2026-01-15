@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace EnvForm\Visitors;
+namespace EnvForm\Services;
 
 use EnvForm\DTO\EnvKeyDefinition;
 use Illuminate\Support\Collection;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use EnvForm\Visitors\EnvKeyVisitor;
+use EnvForm\Services\EnvKeyVisitor;
 use PhpParser\NodeTraverser;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
