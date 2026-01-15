@@ -52,25 +52,27 @@ class ConfigAnalyzer
         );
 
         // 3. Merge
-        return $foundKeys->map(
-            function (array $item) use ($astMap) {
-                $paths = $astMap->get($item['key']);
+        return $foundKeys
+            ->filter(fn (array $item) => $astMap->has($item['key']))
+            ->map(
+                function (array $item) use ($astMap) {
+                    $paths = $astMap->get($item['key']);
 
-                $configKeys = $paths ? $paths->all() : [];
-                $configKey = $paths ? $paths->first() : '';
+                    $configKeys = $paths ? $paths->all() : [];
+                    $configKey = $paths ? $paths->first() : '';
 
-                return new EnvKeyDefinition(
-                    key: $item['key'],
-                    default: $item['default'],
-                    file: $item['file'],
-                    description: $item['description'],
-                    group: $item['group'],
-                    configKeys: $configKeys,
-                    configKey: (string) $configKey,
-                    currentValue: $configKey ? Config::get($configKey) : null,
-                );
-            }
-        )->sortBy('key');
+                    return new EnvKeyDefinition(
+                        key: $item['key'],
+                        default: $item['default'],
+                        file: $item['file'],
+                        description: $item['description'],
+                        group: $item['group'],
+                        configKeys: $configKeys,
+                        configKey: (string) $configKey,
+                        currentValue: $configKey ? Config::get($configKey) : null,
+                    );
+                }
+            )->sortBy('key');
     }
 
     /**
