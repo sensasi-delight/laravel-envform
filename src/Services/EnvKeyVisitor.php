@@ -108,25 +108,19 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
 
     private function parseDefaultValue(Node\Expr $expr): mixed
     {
-        if ($expr instanceof Node\Scalar\String_) {
+        if ($expr instanceof Node\Scalar\String_ || $expr instanceof Node\Scalar\LNumber) {
             return $expr->value;
         }
 
-        if ($expr instanceof Node\Scalar\LNumber) {
-            return $expr->value;
-        }
-
-        if (property_exists($expr, 'name') && $expr->name instanceof Node\Name) {
+        if ($expr instanceof Node\Expr\ConstFetch) {
             $constName = strtolower($expr->name->toString());
-            if ($constName === 'true') {
-                return true;
-            }
-            if ($constName === 'false') {
-                return false;
-            }
-            if ($constName === 'null') {
-                return null;
-            }
+
+            return match ($constName) {
+                'true' => true,
+                'false' => false,
+                'null' => null,
+                default => null,
+            };
         }
 
         return null;
