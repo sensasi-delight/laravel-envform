@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
-use EnvForm\Contracts\FormValueProvider;
 use EnvForm\DTO\EnvKeyDefinition;
 
 final class DependencyResolver
 {
     public function __construct(
-        private readonly FormValueProvider $provider
+        private readonly KeyManager $keyManager
     ) {}
 
     /**
@@ -19,19 +18,55 @@ final class DependencyResolver
     final public function shouldAsk(
         EnvKeyDefinition $envDef
     ): bool {
-        $configKeys = $this->resolveConfigKeys($envDef);
+        $rules = DependencyRules::getRules();
 
-        if (empty($configKeys)) {
-            return true;
+        $dependentPatterns = collect($rules)->flatten()->toArray();
+        $isEnvDefHasDependant = collect($envDef->configKeys)
+            ->contains(
+                fn (string $configKey) => $this->matchesPatterns(
+                    $configKey,
+                    $dependentPatterns
+                )
+            );
+
+        if (! $isEnvDefHasDependant) {
+            return true; // No dependant considered as true
         }
 
-        foreach ($configKeys as $configKey) {
-            if (
-                $this->isConfigActive(
-                    (string) $configKey
-                )
-            ) {
-                return true;
+        foreach ($envDef->configKeys as $configKey) {
+            foreach ($rules as $dependantConfigKey => $conditions) {
+                $dependantEnvKey = $this->keyManager->getDefinitionByConfigKey(
+                    $dependantConfigKey
+                );
+
+                if (! $dependantEnvKey) {
+                    continue;
+                }
+
+                $collectedDependantValue = (string) $this->keyManager
+                    ->getFormValue(
+                        $dependantEnvKey->key
+                    );
+
+                if (! $collectedDependantValue) {
+                    continue;
+                }
+
+                $isDependantValueRegistered = \array_key_exists(
+                    $collectedDependantValue,
+                    $conditions
+                );
+
+                if (! $isDependantValueRegistered) {
+                    continue;
+                }
+
+                if ($this->matchesPatterns(
+                    $configKey,
+                    $conditions[$collectedDependantValue]
+                )) {
+                    return true;
+                }
             }
         }
 
@@ -53,32 +88,6 @@ final class DependencyResolver
         }
 
         return false;
-    }
-
-    private function isConfigActive(string $configKey): bool
-    {
-        if (empty($configKey)) {
-            return true;
-        }
-
-        $rules = DependencyRules::getRules();
-        $matchedAny = false;
-
-        foreach ($rules as $dependantKey => $conditions) {
-            foreach ($conditions as $expectedValue => $patterns) {
-                if ($this->matchesPatterns($configKey, $patterns)) {
-                    $matchedAny = true;
-                    $def = $this->provider->getDefinitionByConfigKey($dependantKey);
-                    $val = $def ? $this->provider->getFormValue($def->key) : null;
-
-                    if ((string) $val === (string) $expectedValue) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return ! $matchedAny;
     }
 
     /**

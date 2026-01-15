@@ -12,15 +12,23 @@ final class DependencyRules
      *    'value' => ['dependent.config.path.wildcard.*']
      * ]
      *
+     * @todo Implement dynamic rules that constructed from scanning config files.
+     *
      * @return array<string, array<string, array<int, string>>>
      */
     public static function getRules(): array
     {
         return [
             'cache.default' => [
-                'redis' => ['cache.stores.redis.*', 'database.redis.*'],
+                'array' => ['cache.stores.array.*'],
+                'database' => ['cache.stores.database.*'],
+                'file' => ['cache.stores.file.*'],
                 'memcached' => ['cache.stores.memcached.*'],
+                'redis' => ['cache.stores.redis.*', 'database.redis.*'],
                 'dynamodb' => ['cache.stores.dynamodb.*', 'services.dynamodb.*'],
+                'octane' => ['cache.stores.octane.*'],
+                'failover' => ['cache.stores.failover.*'],
+                'null' => ['cache.stores.null.*'],
             ],
             'database.default' => [
                 'mysql' => ['database.connections.mysql.*'],
