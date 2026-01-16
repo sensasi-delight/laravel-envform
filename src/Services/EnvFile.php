@@ -4,25 +4,16 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\Contracts\EnvFileService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Finder\Finder;
 
 /**
- * Low-level service for interacting with .env files.
- * Handles parsing raw file content and writing structured, commented environment configurations.
- *
- * @phpstan-type EnvValue bool|int|string|null
+ * @phpstan-import-type EnvValue from EnvFileService
  */
-class EnvFile
+final readonly class EnvFile implements EnvFileService
 {
-    public function __construct() {}
-
-    /**
-     * Find available .env files in the base path.
-     *
-     * @return array<string, string>
-     */
     public function findFiles(string $basePath): array
     {
         $files = Finder::create()
@@ -40,11 +31,6 @@ class EnvFile
         return $options;
     }
 
-    /**
-     * Read and parse a .env file into a simple key-value collection.
-     *
-     * @return Collection<string, string>
-     */
     public function read(string $path): Collection
     {
         if (! File::exists($path)) {
@@ -70,12 +56,6 @@ class EnvFile
         return $values;
     }
 
-    /**
-     * Update or create a .env file with given values and metadata.
-     *
-     * @param  array<string, EnvValue>  $values
-     * @param  array<string, string>  $metadata  [ENV_KEY => GroupName]
-     */
     public function write(string $path, array $values, array $metadata = []): void
     {
         $existing = $this->read($path)->toArray();

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Console\Commands;
 
-use EnvForm\Services\EnvFile;
+use EnvForm\Contracts\EnvFileService;
 use EnvForm\Services\EnvManager;
 use EnvForm\Services\EnvRegistry;
 use EnvForm\Services\Wizard;
@@ -37,7 +37,7 @@ final class Main extends Command
 
     final public function __construct(
         private readonly Wizard $wizard,
-        private readonly EnvFile $envFile,
+        private readonly EnvFileService $envFile,
         private readonly EnvManager $envManager,
         private readonly EnvRegistry $registry
     ) {
