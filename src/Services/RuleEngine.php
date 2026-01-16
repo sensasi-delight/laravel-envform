@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\Contracts\EnvRegistryService;
 use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
 
@@ -57,7 +58,7 @@ final class RuleEngine
 
     public function __construct(
         private readonly UserSessionService $state,
-        private readonly EnvRegistry $registry
+        private readonly EnvRegistryService $registry
     ) {}
 
     /**

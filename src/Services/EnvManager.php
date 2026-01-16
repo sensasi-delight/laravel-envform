@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace EnvForm\Services;
 
 use EnvForm\Contracts\EnvFileService;
+use EnvForm\Contracts\EnvRegistryService;
 use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
@@ -22,7 +23,7 @@ final class EnvManager
     private ?Collection $existingValues = null;
 
     public function __construct(
-        private readonly EnvRegistry $registry,
+        private readonly EnvRegistryService $registry,
         private readonly UserSessionService $session,
         private readonly EnvFileService $file
     ) {}

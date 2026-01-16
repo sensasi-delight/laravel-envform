@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace EnvForm\Console\Commands;
 
 use EnvForm\Contracts\EnvFileService;
+use EnvForm\Contracts\EnvRegistryService;
 use EnvForm\Services\EnvManager;
-use EnvForm\Services\EnvRegistry;
 use EnvForm\Services\Wizard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
@@ -39,7 +39,7 @@ final class EnvForm extends Command
         private readonly Wizard $wizard,
         private readonly EnvFileService $envFile,
         private readonly EnvManager $envManager,
-        private readonly EnvRegistry $registry
+        private readonly EnvRegistryService $registry
     ) {
         parent::__construct();
     }

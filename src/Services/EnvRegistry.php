@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\Contracts\EnvRegistryService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 
-/**
- * Central catalog of all environment variables discovered in the application.
- * Provides a read-only, structured view of the application's environment requirements.
- */
-final class EnvRegistry
+final class EnvRegistry implements EnvRegistryService
 {
     /** @var Collection<int, EnvVar> */
     private Collection $vars;
@@ -22,7 +19,9 @@ final class EnvRegistry
         $this->vars = $this->scanner->scan();
     }
 
-    /** @return Collection<int, EnvVar> */
+    /**
+     * @return Collection<int, EnvVar>
+     */
     public function all(): Collection
     {
         return $this->vars;
