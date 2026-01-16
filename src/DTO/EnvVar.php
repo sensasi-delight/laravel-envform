@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace EnvForm\DTO;
 
+use Illuminate\Support\Collection;
+
 /**
  * Data Transfer Object representing a single environment variable.
  * Encapsulates metadata such as current value, default value, dependencies, etc.
@@ -12,22 +14,13 @@ final readonly class EnvVar
 {
     public function __construct(
         /**
-         * Config key where the env key is defined.
-         */
-        public string $configKey,
-
-        /**
          * Config keys where the env key is defined.
          *
-         * @var string[]
+         * one ENV_KEY can be defined in multiple config files.
+         *
+         * @var Collection<int, string>
          */
-        public array $configKeys,
-
-        /**
-         * Current value is retrieved from the `App::config()` on load.
-         * So the value is the latest value before the CLI session.
-         */
-        public bool|int|null|string $currentValue,
+        public Collection $configKeys,
 
         /**
          * Default value found declared in config file.

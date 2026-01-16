@@ -89,7 +89,7 @@ final class EnvManager
                 continue;
             }
 
-            $final[$key] = $var->currentValue ?? $var->default;
+            $final[$key] = $var->default;
         }
 
         return $final;

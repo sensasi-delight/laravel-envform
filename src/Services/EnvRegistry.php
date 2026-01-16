@@ -18,6 +18,8 @@ final class EnvRegistry implements EnvRegistryService
         private readonly ScannerService $scanner
     ) {
         $this->vars = $this->scanner->scan();
+        // dd($this->vars->first(fn ($var) => $var->key === 'REDIS_CACHE_CONNECTION'),
+        //     $this->vars->first(fn ($var) => $var->key === 'CACHE_STORE'));
     }
 
     /**
@@ -30,7 +32,7 @@ final class EnvRegistry implements EnvRegistryService
 
     public function find(string $configKey): ?EnvVar
     {
-        return $this->vars->firstWhere('configKey', $configKey);
+        return $this->vars->firstWhere(fn ($var) => $var->configKeys->contains($configKey));
     }
 
     /** @return Collection<int, string> */

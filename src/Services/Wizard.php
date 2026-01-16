@@ -92,25 +92,27 @@ final readonly class Wizard implements WizardService
     {
         info("🛠️  Configuring settings for: {$groupName}");
 
-        $vars = $this->registry->all()
+        $triggerEnvVars = $this->registry->all()
             ->filter(fn (EnvVar $v) => $v->group === $groupName)
+            ->filter(fn (EnvVar $v) => $v->isTrigger)
             ->filter(fn (EnvVar $v) => $this->ruleEngine->shouldAsk($v));
 
-        foreach ($vars->filter(fn ($v) => $v->isTrigger) as $envVar) {
+        foreach ($triggerEnvVars as $envVar) {
             $this->askForValue($envVar);
         }
 
-        foreach ($vars->filter(fn ($v) => ! $v->isTrigger) as $envVar) {
+        $nonTriggerEnvVars = $this->registry->all()
+            ->filter(fn (EnvVar $v) => $v->group === $groupName)
+            ->filter(fn (EnvVar $v) => ! $v->isTrigger)
+            ->filter(fn (EnvVar $v) => $this->ruleEngine->shouldAsk($v));
+
+        foreach ($nonTriggerEnvVars as $envVar) {
             $this->askForValue($envVar);
         }
     }
 
     private function askForValue(EnvVar $envVar): void
     {
-        if (! $this->ruleEngine->shouldAsk($envVar)) {
-            return;
-        }
-
         if (
             $this->handleAppKey($envVar->key) ||
             $this->handleStrictKeys($envVar)
@@ -119,7 +121,7 @@ final readonly class Wizard implements WizardService
         }
 
         $currentValue = $this->session->input($envVar->key)
-            ?? Config::get($envVar->configKey)
+            ?? Config::get($envVar->configKeys[0])
             ?? $this->envManager->getExistingValue($envVar->key);
 
         $defaultValue = $envVar->default;
@@ -194,14 +196,23 @@ final readonly class Wizard implements WizardService
     private function handleStrictKeys(EnvVar $ekd): bool
     {
         $map = [
-            'broadcast.default' => 'broadcasting.connections',
             'cache.default' => 'cache.stores',
-            'queue.default' => 'queue.stores',
-            'filesystem.default' => 'filesystem.disks',
             'database.default' => 'database.connections',
+            'filesystem.default' => 'filesystem.disks',
+            'logging.default' => 'logging.channels',
+            'mail.default' => 'mail.mailers',
+            'queue.default' => 'queue.stores',
+            'cache.redis.connection' => 'database.redis',
         ];
 
-        $ref = $map[$ekd->configKey] ?? null;
+        $ref = null;
+
+        foreach ($ekd->configKeys as $configKey) {
+            if (! empty($map[$configKey])) {
+                $ref = $map[$configKey];
+                break;
+            }
+        }
 
         if (! $ref && preg_match('/^DB_(.*)_CONNECTION$/', $ekd->key)) {
             $ref = 'database.connections';
@@ -217,8 +228,8 @@ final readonly class Wizard implements WizardService
                 label: "🔌 {$ekd->key}",
                 optionsRefConfigKey: $ref,
                 envVar: $ekd,
-                additionalOptions: $ekd->configKey === 'cache.default' ? ['null'] : [],
-                additionalDefaultOption: $ekd->configKey === 'database.default' ? Config::get('database.default') : null
+                additionalOptions: $ekd->configKeys->contains('cache.default') ? ['null'] : [],
+                additionalDefaultOption: $ekd->configKeys->contains('database.default') ? Config::get('database.default') : null
             )
         );
 
@@ -235,19 +246,17 @@ final readonly class Wizard implements WizardService
         array $additionalOptions = [],
         ?string $additionalDefaultOption = null
     ): int|string {
-        /** @var string[] */
+
+        /** @var string[] $availableOptions */
         $availableOptions = [
-            ...array_keys(
-                array: Config::get(
-                    key: $optionsRefConfigKey,
-                    default: []
-                )
-            ),
+            ...array_keys(Config::get(
+                $optionsRefConfigKey
+            )),
             ...$additionalOptions,
         ];
 
         $defaultValue = $this->session->input($envVar->key)
-            ?? $envVar->currentValue
+            ?? $this->envManager->getExistingValue($envVar->key)
             ?? $envVar->default
             ?? $additionalDefaultOption;
 

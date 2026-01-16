@@ -95,9 +95,7 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
         }
 
         $this->foundItems->push(new EnvVar(
-            $configKey,
-            [$configKey],
-            Config::get($configKey),
+            collect([$configKey]),
             $defaultValue,
             [],
             '',

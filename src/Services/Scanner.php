@@ -8,7 +8,6 @@ use EnvForm\Contracts\ScannerService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Config;
 use PhpParser\NodeTraverser;
 use PhpParser\ParserFactory;
 use Symfony\Component\Finder\Finder;
@@ -18,10 +17,10 @@ final readonly class Scanner implements ScannerService
 {
     private const ENV_PATTERN = "/env\(\s*['\"]([A-Z0-9_]+)['\"](?:\s*,\s*(['\"](.*?)['\"]|[^)]+))?\s*\)/";
 
-    public function __construct() {}
-
     /**
      * @return Collection<int, EnvVar>
+     *
+     * @throws \Exception
      */
     public function scan(): Collection
     {
@@ -44,60 +43,55 @@ final readonly class Scanner implements ScannerService
         // 2. AST Analysis (Structure)
         $astRaw = $this->parseConfigDirectory($configPath);
 
+        /** @var Collection<string, Collection<int, string>> */
         $astMap = $astRaw->mapToGroups(
             fn (EnvVar $item) => [
-                $item->key => $item->configKey,
+                $item->key => $item->configKeys->first(),
             ]
         );
 
         // 3. Merge
         return $foundKeys
-            ->filter(fn (array $item) => $astMap->has($item['key']))
-            ->map(
-                function (array $item) use ($astMap) {
-                    $paths = $astMap->get($item['key']);
+            ->filter(
+                fn (array $item) => $astMap->has($item['key'])
+            )->map(function (array $item) use ($astMap) {
+                $configKeys = $astMap->get(
+                    $item['key']
+                );
 
-                    $configKeys = $paths ? $paths->all() : [];
-                    $configKey = $paths ? $paths->first() : '';
+                if (! $configKeys || $configKeys->count() === 0) {
+                    throw new \Exception("Found $item[key] in $item[file], but could not find any matching config keys without", 1);
+                }
 
-                    // Calculate isTrigger
-                    $isTrigger = false;
-                    foreach ($configKeys as $ck) {
-                        if (array_key_exists($ck, RuleEngine::RULES)) {
-                            $isTrigger = true;
-                            break;
-                        }
-                    }
-
-                    // Calculate dependencies
-                    $dependencies = [];
-                    foreach (RuleEngine::RULES as $triggerKey => $conditions) {
-                        foreach ($conditions as $triggerValue => $patterns) {
-                            foreach ($configKeys as $ck) {
-                                foreach ($patterns as $pattern) {
-                                    if (fnmatch($pattern, $ck)) {
-                                        $dependencies[$triggerKey][$triggerValue] = $patterns;
-                                        // Once we find a match for this trigger+value, no need to check other patterns for this value
-                                        break;
-                                    }
+                // Calculate dependencies
+                $dependencies = [];
+                foreach (RuleEngine::RULES as $triggerKey => $conditions) {
+                    foreach ($conditions as $triggerValue => $patterns) {
+                        foreach ($configKeys as $ck) {
+                            foreach ($patterns as $pattern) {
+                                if (fnmatch($pattern, $ck)) {
+                                    $dependencies[$triggerKey][$triggerValue] = $patterns;
+                                    // Once we find a match for this trigger+value, no need to check other patterns for this value
+                                    break;
                                 }
                             }
                         }
                     }
-
-                    return new EnvVar(
-                        (string) $configKey,
-                        $configKeys,
-                        $configKey ? Config::get($configKey) : null,
-                        $item['default'],
-                        $dependencies,
-                        $item['description'],
-                        $item['file'],
-                        $item['group'],
-                        $isTrigger,
-                        $item['key'],
-                    );
                 }
+
+                $isTrigger = $configKeys->contains(fn (string $configKey) => \array_key_exists($configKey, RuleEngine::RULES));
+
+                return new EnvVar(
+                    $configKeys,
+                    $item['default'],
+                    $dependencies,
+                    $item['description'],
+                    $item['file'],
+                    $item['group'],
+                    $isTrigger,
+                    $item['key'],
+                );
+            }
             )->sortBy('key');
     }
 

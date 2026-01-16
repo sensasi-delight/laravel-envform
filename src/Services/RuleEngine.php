@@ -7,6 +7,7 @@ namespace EnvForm\Services;
 use EnvForm\Contracts\EnvRegistryService;
 use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
+use Illuminate\Support\Collection;
 
 /**
  * Deterministic engine for evaluating dependency rules between environment variables.
@@ -26,7 +27,7 @@ final class RuleEngine
             'database' => ['cache.stores.database.*'],
             'file' => ['cache.stores.file.*'],
             'memcached' => ['cache.stores.memcached.*'],
-            'redis' => ['cache.stores.redis.*', 'database.redis.*'],
+            'redis' => ['cache.stores.redis.*'],
             'dynamodb' => ['cache.stores.dynamodb.*', 'services.dynamodb.*'],
             'octane' => ['cache.stores.octane.*'],
             'failover' => ['cache.stores.failover.*'],
@@ -87,7 +88,6 @@ final class RuleEngine
 
             // Check if the current value of the trigger matches any condition for this key
             $patterns = $valueMap[$currentTriggerValue] ?? null;
-
             if ($patterns && $this->matchesAnyConfigKey($envDef->configKeys, $patterns)) {
                 return true;
             }
@@ -97,10 +97,10 @@ final class RuleEngine
     }
 
     /**
-     * @param  string[]  $configKeys
+     * @param  Collection<int, string>  $configKeys
      * @param  string[]  $patterns
      */
-    private function matchesAnyConfigKey(array $configKeys, array $patterns): bool
+    private function matchesAnyConfigKey(Collection $configKeys, array $patterns): bool
     {
         foreach ($configKeys as $configKey) {
             if ($this->matchesPatterns($configKey, $patterns)) {
@@ -114,10 +114,10 @@ final class RuleEngine
     /**
      * @param  string[]  $patterns
      */
-    private function matchesPatterns(string $path, array $patterns): bool
+    private function matchesPatterns(string $configKey, array $patterns): bool
     {
         foreach ($patterns as $pattern) {
-            if (fnmatch($pattern, $path)) {
+            if (fnmatch($pattern, $configKey)) {
                 return true;
             }
         }
