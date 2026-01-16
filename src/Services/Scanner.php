@@ -8,16 +8,31 @@ use EnvForm\Contracts\ScannerService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
+use PhpParser\Node;
 use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitorAbstract;
+use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-final readonly class Scanner implements ScannerService
+/**
+ * Static analysis engine that combines AST traversal and Laravel's config structure.
+ * Scans PHP files in the config directory to discover env() calls and their dot-notation paths.
+ */
+final class Scanner extends NodeVisitorAbstract implements ScannerService
 {
-    private const ENV_PATTERN = "/env\(\s*['\"]([A-Z0-9_]+)['\"](?:\s*,\s*(['\"](.*?)['\"]|[^)]+))?\s*\)/";
+    /** @var string[] Current configuration path stack */
+    private array $stack = [];
+
+    /** @var Collection<int, array{envKey: string, configKey: string, defaultValue: mixed, file: string}> */
+    private Collection $foundItems;
+
+    private string $currentFilename = '';
 
     /**
+     * Scan config directory for env() calls and return a consolidated collection of EnvVars.
+     *
      * @return Collection<int, EnvVar>
      *
      * @throws \Exception
@@ -28,42 +43,19 @@ final readonly class Scanner implements ScannerService
 
         info("🔍 Analyzing project configuration in: {$configPath}...");
 
-        // 1. Regex Analysis (Metadata)
-        $files = Finder::create()
-            ->files()
-            ->in($configPath)
-            ->name('*.php');
-
-        $foundKeys = collect();
-
-        foreach ($files as $file) {
-            $this->extractKeysFromFile($file, $foundKeys);
-        }
-
-        // 2. AST Analysis (Structure)
         $astRaw = $this->parseConfigDirectory($configPath);
 
-        /** @var Collection<string, Collection<int, string>> */
-        $astMap = $astRaw->mapToGroups(
-            fn (EnvVar $item) => [
-                $item->key => $item->configKeys->first(),
-            ]
-        );
+        // Group by envKey to handle multiple config paths per env var
+        return $astRaw->groupBy('envKey')
+            ->map(function (Collection $occurrences, string $envKey) {
+                $configKeys = $occurrences->pluck('configKey');
+                $firstOccurrence = $occurrences->first();
 
-        // 3. Merge
-        return $foundKeys
-            ->filter(
-                fn (array $item) => $astMap->has($item['key'])
-            )->map(function (array $item) use ($astMap) {
-                $configKeys = $astMap->get(
-                    $item['key']
-                );
-
-                if (! $configKeys || $configKeys->count() === 0) {
-                    throw new \Exception("Found $item[key] in $item[file], but could not find any matching config keys without", 1);
+                if ($firstOccurrence === null) {
+                    throw new \Exception("Could not find any occurrences for {$envKey}", 1);
                 }
 
-                // Calculate dependencies
+                // Calculate dependencies based on RuleEngine
                 $dependencies = [];
                 foreach (RuleEngine::RULES as $triggerKey => $conditions) {
                     foreach ($conditions as $triggerValue => $patterns) {
@@ -71,7 +63,6 @@ final readonly class Scanner implements ScannerService
                             foreach ($patterns as $pattern) {
                                 if (fnmatch($pattern, $ck)) {
                                     $dependencies[$triggerKey][$triggerValue] = $patterns;
-                                    // Once we find a match for this trigger+value, no need to check other patterns for this value
                                     break;
                                 }
                             }
@@ -83,20 +74,19 @@ final readonly class Scanner implements ScannerService
 
                 return new EnvVar(
                     $configKeys,
-                    $item['default'],
+                    $firstOccurrence['defaultValue'],
                     $dependencies,
-                    $item['description'],
-                    $item['file'],
-                    $item['group'],
+                    $this->guessDescription($envKey),
+                    $firstOccurrence['file'],
+                    $firstOccurrence['file'], // Group by file
                     $isTrigger,
-                    $item['key'],
+                    $envKey,
                 );
-            }
-            )->sortBy('key');
+            })->sortBy('key')->values();
     }
 
     /**
-     * @return Collection<int, EnvVar>
+     * @return Collection<int, array{envKey: string, configKey: string, defaultValue: mixed, file: string}>
      */
     private function parseConfigDirectory(string $configPath): Collection
     {
@@ -106,94 +96,113 @@ final readonly class Scanner implements ScannerService
             ->name('*.php');
 
         $parser = (new ParserFactory)->createForNewestSupportedVersion();
-        /** @var Collection<int, EnvVar> $foundItems */
-        $foundItems = new Collection;
+        $this->foundItems = new Collection;
 
         foreach ($files as $file) {
-            $fileItems = $this->parseFile($file, $parser);
-            $foundItems = $foundItems->merge($fileItems);
+            $this->parseFile($file, $parser);
         }
 
-        return $foundItems;
+        return $this->foundItems;
     }
 
-    /**
-     * @param  \PhpParser\Parser  $parser
-     * @return Collection<int, EnvVar>
-     */
-    private function parseFile(SplFileInfo $file, $parser): Collection
+    private function parseFile(SplFileInfo $file, Parser $parser): void
     {
         try {
             $stmts = $parser->parse($file->getContents());
             if ($stmts === null) {
-                return new Collection;
+                return;
             }
         } catch (\Throwable $e) {
-            return new Collection;
+            return;
         }
 
+        $this->currentFilename = $file->getFilenameWithoutExtension();
+        $this->stack = [];
+
         $traverser = new NodeTraverser;
-        $visitor = new EnvKeyVisitor($file->getFilenameWithoutExtension());
-
-        $traverser->addVisitor($visitor);
+        $traverser->addVisitor($this);
         $traverser->traverse($stmts);
-
-        return $visitor->getFoundItems();
     }
 
     /**
-     * @param  Collection<string, mixed>  $foundKeys
+     * @internal NodeVisitor API
      */
-    private function extractKeysFromFile(
-        SplFileInfo $file,
-        Collection $foundKeys
-    ): void {
-        $content = $file->getContents();
-        $filename = $file->getFilename();
-
-        preg_match_all(
-            self::ENV_PATTERN,
-            $content,
-            $matches,
-            PREG_SET_ORDER
-        );
-
-        foreach ($matches as $match) {
-            /** @var non-empty-string $key */
-            $key = $match[1];
-
-            /** @var non-empty-string|null $defaultRaw */
-            $defaultRaw = $match[2] ?? null;
-
-            $default = $this->parseDefaultValue($defaultRaw);
-
-            if (! $foundKeys->has($key)) {
-                $foundKeys->put($key, [
-                    'key' => $key,
-                    'default' => $default,
-                    'file' => $filename,
-                    'description' => $this->guessDescription($key),
-                    'group' => $filename,
-                    'config_path' => '', // Initialize with empty
-                ]);
+    public function enterNode(Node $node): ?int
+    {
+        if ($node instanceof Node\Expr\ArrayItem) {
+            if ($node->key instanceof Node\Scalar\String_) {
+                $this->stack[] = $node->key->value;
+            } elseif ($node->key === null) {
+                $this->stack[] = '*';
             }
         }
-    }
 
-    private function parseDefaultValue(?string $raw): mixed
-    {
-        if ($raw === null) {
-            return null;
+        if ($node instanceof Node\Expr\FuncCall) {
+            $this->handleFuncCall($node);
         }
 
-        $default = trim($raw, "'\" ");
+        return null;
+    }
 
-        return match (strtoupper($default)) {
-            'NULL' => null,
-            'TRUE' => true,
-            'FALSE' => false,
-            default => $default,
-        };
+    /**
+     * @internal NodeVisitor API
+     */
+    public function leaveNode(Node $node): ?int
+    {
+        if ($node instanceof Node\Expr\ArrayItem) {
+            if (($node->key instanceof Node\Scalar\String_) || $node->key === null) {
+                array_pop($this->stack);
+            }
+        }
+
+        return null;
+    }
+
+    private function handleFuncCall(Node\Expr\FuncCall $funcCall): void
+    {
+        if (! $funcCall->name instanceof Node\Name || $funcCall->name->toString() !== 'env') {
+            return;
+        }
+
+        $args = $funcCall->getArgs();
+        if (! isset($args[0]) || ! $args[0]->value instanceof Node\Scalar\String_) {
+            return;
+        }
+
+        $envKey = $args[0]->value->value;
+        $configKey = $this->currentFilename.'.'.implode('.', $this->stack);
+
+        $defaultValue = null;
+        if (isset($args[1])) {
+            $defaultValue = $this->parseDefaultValue($args[1]->value);
+        }
+
+        $this->foundItems->push([
+            'envKey' => $envKey,
+            'configKey' => $configKey,
+            'defaultValue' => $defaultValue,
+            'file' => $this->currentFilename.'.php',
+        ]);
+    }
+
+    private function parseDefaultValue(Node\Expr $expr): mixed
+    {
+        if ($expr instanceof Node\Scalar\String_ || $expr instanceof Node\Scalar\LNumber) {
+            return $expr->value;
+        }
+
+        if ($expr instanceof Node\Expr\ConstFetch) {
+            $constName = strtolower($expr->name->toString());
+
+            return match ($constName) {
+                'true' => true,
+                'false' => false,
+                'null' => null,
+                default => null,
+            };
+        }
+
+        return null;
     }
 
     private function guessDescription(string $key): string
