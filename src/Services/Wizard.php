@@ -6,6 +6,7 @@ namespace EnvForm\Services;
 
 use EnvForm\Contracts\EnvRegistryService;
 use EnvForm\Contracts\UserSessionService;
+use EnvForm\Contracts\WizardService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
@@ -17,17 +18,13 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 
-/**
- * Terminal UI (TUI) orchestrator for the interactive configuration process.
- * Manages the prompt loop, progress display, and navigation between configuration groups.
- */
-final class Wizard
+final readonly class Wizard implements WizardService
 {
     final public function __construct(
-        private readonly RuleEngine $ruleEngine,
-        private readonly EnvRegistryService $registry,
-        private readonly UserSessionService $session,
-        private readonly EnvManager $envManager
+        private RuleEngine $ruleEngine,
+        private EnvRegistryService $registry,
+        private UserSessionService $session,
+        private EnvManager $envManager
     ) {}
 
     final public function run(): void

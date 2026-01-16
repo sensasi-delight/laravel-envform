@@ -25,11 +25,16 @@ final class EnvFormServiceProvider extends ServiceProvider
             Services\EnvRegistry::class
         );
 
+        $this->app->singleton(Services\EnvManager::class);
+
         $this->app->singleton(
             Contracts\UserSessionService::class, Services\UserSession::class
         );
 
-        $this->app->singleton(Services\EnvManager::class);
+        $this->app->bind(
+            Contracts\WizardService::class,
+            Services\Wizard::class
+        );
     }
 
     final public function boot(): void
