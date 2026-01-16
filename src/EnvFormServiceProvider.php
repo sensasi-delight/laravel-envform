@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm;
 
-use EnvForm\Console\Commands\Main;
+use EnvForm\Console\Commands\EnvForm;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -33,7 +33,7 @@ final class EnvFormServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                Main::class,
+                EnvForm::class,
             ]);
         }
     }
