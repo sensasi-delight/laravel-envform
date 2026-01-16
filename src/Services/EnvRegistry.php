@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace EnvForm\Services;
 
 use EnvForm\Contracts\EnvRegistryService;
+use EnvForm\Contracts\ScannerService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 
@@ -14,7 +15,7 @@ final class EnvRegistry implements EnvRegistryService
     private Collection $vars;
 
     public function __construct(
-        private readonly Scanner $scanner
+        private readonly ScannerService $scanner
     ) {
         $this->vars = $this->scanner->scan();
     }

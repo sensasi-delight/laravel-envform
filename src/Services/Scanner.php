@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\Contracts\ScannerService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
@@ -13,19 +14,13 @@ use PhpParser\ParserFactory;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-/**
- * Static analysis engine for Laravel configuration files.
- * Uses a hybrid approach (Regex + AST) to discover env() calls and map them to config paths.
- */
-class Scanner
+final readonly class Scanner implements ScannerService
 {
     private const ENV_PATTERN = "/env\(\s*['\"]([A-Z0-9_]+)['\"](?:\s*,\s*(['\"](.*?)['\"]|[^)]+))?\s*\)/";
 
     public function __construct() {}
 
     /**
-     * Scan config directory for env() calls.
-     *
      * @return Collection<int, EnvVar>
      */
     public function scan(): Collection

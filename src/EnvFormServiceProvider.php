@@ -32,6 +32,11 @@ final class EnvFormServiceProvider extends ServiceProvider
         );
 
         $this->app->bind(
+            Contracts\ScannerService::class,
+            Services\Scanner::class
+        );
+
+        $this->app->bind(
             Contracts\WizardService::class,
             Services\Wizard::class
         );
