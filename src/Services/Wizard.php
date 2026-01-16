@@ -202,7 +202,8 @@ final readonly class Wizard implements WizardService
             'logging.default' => 'logging.channels',
             'mail.default' => 'mail.mailers',
             'queue.default' => 'queue.stores',
-            'cache.redis.connection' => 'database.redis',
+            'cache.stores.redis.connection' => 'database.redis',
+            'cache.stores.redis.lock_connection' => 'database.redis',
         ];
 
         $ref = null;
