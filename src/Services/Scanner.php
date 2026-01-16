@@ -91,16 +91,16 @@ class Scanner
                     }
 
                     return new EnvVar(
-                        key: $item['key'],
-                        default: $item['default'],
-                        file: $item['file'],
-                        description: $item['description'],
-                        group: $item['group'],
-                        configKeys: $configKeys,
-                        configKey: (string) $configKey,
-                        currentValue: $configKey ? Config::get($configKey) : null,
-                        isTrigger: $isTrigger,
-                        dependencies: $dependencies,
+                        (string) $configKey,
+                        $configKeys,
+                        $configKey ? Config::get($configKey) : null,
+                        $item['default'],
+                        $dependencies,
+                        $item['description'],
+                        $item['file'],
+                        $item['group'],
+                        $isTrigger,
+                        $item['key'],
                     );
                 }
             )->sortBy('key');

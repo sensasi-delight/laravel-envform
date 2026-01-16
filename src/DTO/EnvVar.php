@@ -6,50 +6,56 @@ namespace EnvForm\DTO;
 
 /**
  * Data Transfer Object representing a single environment variable.
- * Encapsulates metadata, default values, current config values, and dependency rules.
+ * Encapsulates metadata such as current value, default value, dependencies, etc.
  */
-final class EnvVar
+final readonly class EnvVar
 {
-    /**
-     * @param  string[]  $configKeys
-     */
     public function __construct(
-        /**
-         * Env key
-         */
-        public readonly string $key,
-
-        /**
-         * Default value found in config file
-         */
-        public readonly mixed $default,
-
-        public readonly string $file,
-        public readonly string $description,
-        public readonly string $group,
-
         /**
          * Config key where the env key is defined.
          */
-        public readonly string $configKey,
-        public readonly mixed $currentValue,
+        public string $configKey,
 
         /**
          * Config keys where the env key is defined.
+         *
+         * @var string[]
          */
-        public readonly array $configKeys = [],
+        public array $configKeys,
 
         /**
-         * Whether this key triggers changes in other keys.
+         * Current value is retrieved from the `App::config()` on load.
+         * So the value is the latest value before the CLI session.
          */
-        public readonly bool $isTrigger = false,
+        public bool|int|null|string $currentValue,
+
+        /**
+         * Default value found declared in config file.
+         */
+        public bool|int|null|string $default,
 
         /**
          * Dependencies for this key.
          * Structure: ['triggerConfigKey' => ['value' => ['patterns']]]
          *
-         * @var array<string, array<string, array<int, string>>>
+         * @var array<string, array<string, string[]>>
          */
-        public readonly array $dependencies = [],
+        public array $dependencies,
+
+        public string $description,
+
+        public string $file,
+
+        public string $group,
+
+        /**
+         * Whether this key triggers changes in other keys.
+         */
+        public bool $isTrigger,
+
+        /**
+         * Env key
+         */
+        public string $key,
     ) {}
 }

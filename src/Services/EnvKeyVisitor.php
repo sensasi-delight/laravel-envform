@@ -95,14 +95,16 @@ final class EnvKeyVisitor extends NodeVisitorAbstract
         }
 
         $this->foundItems->push(new EnvVar(
-            key: $envKey,
-            default: $defaultValue,
-            file: $this->filename,
-            description: '', // Description extraction not yet implemented
-            group: 'General', // Default group
-            configKey: $configKey,
-            configKeys: [$configKey],
-            currentValue: Config::get($configKey),
+            $configKey,
+            [$configKey],
+            Config::get($configKey),
+            $defaultValue,
+            [],
+            '',
+            $this->filename,
+            'General',
+            false,
+            $envKey
         ));
     }
 
