@@ -23,7 +23,7 @@ final class EnvFormServiceProvider extends ServiceProvider
         $this->app->singleton(Services\EnvRegistry::class);
 
         $this->app->singleton(
-            Contracts\InputProvider::class, Services\UserSession::class
+            Contracts\UserSessionService::class, Services\UserSession::class
         );
 
         $this->app->singleton(Services\EnvManager::class);

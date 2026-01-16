@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace EnvForm\Services;
 
 use EnvForm\Contracts\EnvFileService;
+use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
@@ -22,7 +23,7 @@ final class EnvManager
 
     public function __construct(
         private readonly EnvRegistry $registry,
-        private readonly UserSession $session,
+        private readonly UserSessionService $session,
         private readonly EnvFileService $file
     ) {}
 
@@ -58,7 +59,10 @@ final class EnvManager
 
     private function getPendingCount(): int
     {
-        $engine = new RuleEngine($this->session);
+        $engine = new RuleEngine(
+            $this->session,
+            $this->registry
+        );
 
         return $this->registry->all()
             ->filter(fn (EnvVar $var) => $engine->shouldAsk($var))

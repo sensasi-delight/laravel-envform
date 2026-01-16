@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
+use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
@@ -24,7 +25,7 @@ final class Wizard
     final public function __construct(
         private readonly RuleEngine $ruleEngine,
         private readonly EnvRegistry $registry,
-        private readonly UserSession $session,
+        private readonly UserSessionService $session,
         private readonly EnvManager $envManager
     ) {}
 

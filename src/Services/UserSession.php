@@ -4,21 +4,12 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
-use EnvForm\Contracts\InputProvider;
-use EnvForm\DTO\EnvVar;
+use EnvForm\Contracts\UserSessionService;
 
-/**
- * Temporary state container for user inputs during the CLI session.
- * Tracks the values provided by the user before they are merged and persisted.
- */
-final class UserSession implements InputProvider
+final class UserSession implements UserSessionService
 {
     /** @var array<string, mixed> */
     private array $inputs = [];
-
-    public function __construct(
-        private readonly EnvRegistry $registry
-    ) {}
 
     public function set(string $key, mixed $value): void
     {
@@ -28,16 +19,5 @@ final class UserSession implements InputProvider
     public function input(string $key): mixed
     {
         return $this->inputs[$key] ?? null;
-    }
-
-    /** @return array<string, mixed> */
-    public function allInputs(): array
-    {
-        return $this->inputs;
-    }
-
-    public function getDefinitionByConfigKey(string $configKey): ?EnvVar
-    {
-        return $this->registry->find($configKey);
     }
 }
