@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace EnvForm\Services;
+namespace EnvForm\Wizard;
 
 use EnvForm\Contracts\UserSessionService;
-use EnvForm\Contracts\WizardService;
 use EnvForm\DTO\EnvVar;
 use EnvForm\Hint\Service as Hint;
 use EnvForm\Registry;
+use EnvForm\Services\EnvManager;
+use EnvForm\Services\RuleEngine;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
@@ -19,7 +20,7 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 
-final readonly class Wizard implements WizardService
+final readonly class Service
 {
     final public function __construct(
         private RuleEngine $ruleEngine,

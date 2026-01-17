@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace EnvForm\Console\Commands;
 
 use EnvForm\Contracts\EnvFileService;
-use EnvForm\Contracts\WizardService;
 use EnvForm\Registry;
 use EnvForm\Services\EnvManager;
+use EnvForm\Wizard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
 
@@ -36,7 +36,7 @@ final class EnvForm extends Command
     protected $description = 'Interactively manage .env file based on project analysis.';
 
     final public function __construct(
-        private readonly WizardService $wizard,
+        private readonly Wizard\Service $wizard,
         private readonly EnvFileService $envFile,
         private readonly EnvManager $envManager,
         private readonly Registry\Service $registry

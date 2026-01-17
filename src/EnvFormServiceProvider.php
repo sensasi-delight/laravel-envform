@@ -43,11 +43,6 @@ final class EnvFormServiceProvider extends ServiceProvider
             Registry\RepositoryContract::class,
             Registry\Repository::class
         );
-
-        $this->app->bind(
-            Contracts\WizardService::class,
-            Services\Wizard::class
-        );
     }
 
     final public function boot(): void
