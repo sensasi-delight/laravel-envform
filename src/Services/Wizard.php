@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace EnvForm\Services;
 
-use EnvForm\Contracts\EnvRegistryService;
 use EnvForm\Contracts\UserSessionService;
 use EnvForm\Contracts\WizardService;
 use EnvForm\DTO\EnvVar;
 use EnvForm\Hint\Service as Hint;
+use EnvForm\Registry;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
@@ -23,7 +23,7 @@ final readonly class Wizard implements WizardService
 {
     final public function __construct(
         private RuleEngine $ruleEngine,
-        private EnvRegistryService $registry,
+        private Registry\Service $registry,
         private UserSessionService $session,
         private EnvManager $envManager,
         private Hint $hint

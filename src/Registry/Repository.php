@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace EnvForm\Services;
+namespace EnvForm\Registry;
 
-use EnvForm\Contracts\ScannerService;
-use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use PhpParser\Node;
@@ -20,7 +18,7 @@ use Symfony\Component\Finder\SplFileInfo;
  * Static analysis engine that combines AST traversal and Laravel's config structure.
  * Scans PHP files in the config directory to discover env() calls and their dot-notation paths.
  */
-final class Scanner extends NodeVisitorAbstract implements ScannerService
+final class Repository extends NodeVisitorAbstract implements RepositoryContract
 {
     /** @var string[] Current configuration path stack */
     private array $stack = [];
@@ -31,11 +29,9 @@ final class Scanner extends NodeVisitorAbstract implements ScannerService
     private string $currentFilename = '';
 
     /**
-     * Scan config directory for env() calls and return a consolidated collection of EnvVars.
+     * Scan config directory for env() calls and return raw findings.
      *
-     * @return Collection<int, EnvVar>
-     *
-     * @throws \Exception
+     * @return Collection<int, array{envKey: string, configKey: string, defaultValue: mixed, file: string}>
      */
     public function scan(): Collection
     {
@@ -43,45 +39,7 @@ final class Scanner extends NodeVisitorAbstract implements ScannerService
 
         info("🔍 Analyzing project configuration in: {$configPath}...");
 
-        $astRaw = $this->parseConfigDirectory($configPath);
-
-        // Group by envKey to handle multiple config paths per env var
-        return $astRaw->groupBy('envKey')
-            ->map(function (Collection $occurrences, string $envKey) {
-                $configKeys = $occurrences->pluck('configKey');
-                $firstOccurrence = $occurrences->first();
-
-                if ($firstOccurrence === null) {
-                    throw new \Exception("Could not find any occurrences for {$envKey}", 1);
-                }
-
-                // Calculate dependencies based on RuleEngine
-                $dependencies = [];
-                foreach (RuleEngine::RULES as $triggerKey => $conditions) {
-                    foreach ($conditions as $triggerValue => $patterns) {
-                        foreach ($configKeys as $ck) {
-                            foreach ($patterns as $pattern) {
-                                if (fnmatch($pattern, $ck)) {
-                                    $dependencies[$triggerKey][$triggerValue] = $patterns;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                $isTrigger = $configKeys->contains(fn (string $configKey) => \array_key_exists($configKey, RuleEngine::RULES));
-
-                return new EnvVar(
-                    $configKeys,
-                    $firstOccurrence['defaultValue'],
-                    $dependencies,
-                    $firstOccurrence['file'],
-                    $firstOccurrence['file'], // Group by file
-                    $isTrigger,
-                    $envKey,
-                );
-            })->sortBy('key')->values();
+        return $this->parseConfigDirectory($configPath);
     }
 
     /**

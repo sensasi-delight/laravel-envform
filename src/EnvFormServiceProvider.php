@@ -20,11 +20,6 @@ final class EnvFormServiceProvider extends ServiceProvider
             Services\EnvFile::class
         );
 
-        $this->app->singleton(
-            Contracts\EnvRegistryService::class,
-            Services\EnvRegistry::class
-        );
-
         $this->app->singleton(Services\EnvManager::class);
 
         // ####### Hints ########
@@ -40,9 +35,13 @@ final class EnvFormServiceProvider extends ServiceProvider
             Contracts\UserSessionService::class, Services\UserSession::class
         );
 
+        // #### Registry #####
+
+        $this->app->singleton(Registry\Service::class);
+
         $this->app->bind(
-            Contracts\ScannerService::class,
-            Services\Scanner::class
+            Registry\RepositoryContract::class,
+            Registry\Repository::class
         );
 
         $this->app->bind(
