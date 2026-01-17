@@ -8,6 +8,7 @@ use EnvForm\Contracts\EnvRegistryService;
 use EnvForm\Contracts\UserSessionService;
 use EnvForm\Contracts\WizardService;
 use EnvForm\DTO\EnvVar;
+use EnvForm\Hint\Service as Hint;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
@@ -24,7 +25,8 @@ final readonly class Wizard implements WizardService
         private RuleEngine $ruleEngine,
         private EnvRegistryService $registry,
         private UserSessionService $session,
-        private EnvManager $envManager
+        private EnvManager $envManager,
+        private Hint $hint
     ) {}
 
     final public function run(): void
@@ -127,7 +129,7 @@ final readonly class Wizard implements WizardService
         $defaultValue = $envVar->default;
 
         $label = "👉 {$envVar->key}";
-        $hint = $envVar->description;
+        $hint = $this->hint->get($envVar->configKeys[0]);
 
         if ($defaultValue !== null) {
             $displayDefault = \is_bool($defaultValue) ? ($defaultValue ? 'true' : 'false') : (string) $defaultValue;
@@ -138,7 +140,7 @@ final readonly class Wizard implements WizardService
 
         if (\is_bool($defaultValue)) {
             $boolInitial = $initial;
-            if (is_string($initial)) {
+            if (\is_string($initial)) {
                 $boolInitial = strtolower($initial) === 'true';
             }
 
@@ -265,7 +267,7 @@ final readonly class Wizard implements WizardService
             label: $label,
             options: $availableOptions,
             default: $defaultValue,
-            hint: $envVar->description,
+            hint: $this->hint->get($envVar->configKeys[0]),
             scroll: \count($availableOptions)
         );
     }

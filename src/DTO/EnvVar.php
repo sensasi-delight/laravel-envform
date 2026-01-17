@@ -35,8 +35,6 @@ final readonly class EnvVar
          */
         public array $dependencies,
 
-        public string $description,
-
         public string $file,
 
         public string $group,

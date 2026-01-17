@@ -76,7 +76,6 @@ final class Scanner extends NodeVisitorAbstract implements ScannerService
                     $configKeys,
                     $firstOccurrence['defaultValue'],
                     $dependencies,
-                    $this->guessDescription($envKey),
                     $firstOccurrence['file'],
                     $firstOccurrence['file'], // Group by file
                     $isTrigger,
@@ -203,18 +202,5 @@ final class Scanner extends NodeVisitorAbstract implements ScannerService
         }
 
         return null;
-    }
-
-    private function guessDescription(string $key): string
-    {
-        return match (true) {
-            str_contains($key, '_HOST') => '🏠 Host address / IP',
-            str_contains($key, '_PORT') => '🚪 Port number',
-            str_contains($key, '_DATABASE') => '🗄️ Database name',
-            str_contains($key, '_USERNAME') => '👤 Username / Access Key ID',
-            str_contains($key, '_PASSWORD') => '🔒 Password / Secret Key',
-            str_contains($key, '_URL') => '🔗 Service URL',
-            default => '⚙️ Configuration value for '.$key,
-        };
     }
 }

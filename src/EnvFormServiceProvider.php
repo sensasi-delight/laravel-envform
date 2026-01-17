@@ -27,6 +27,15 @@ final class EnvFormServiceProvider extends ServiceProvider
 
         $this->app->singleton(Services\EnvManager::class);
 
+        // ####### Hints ########
+
+        $this->app->bind(
+            Hint\RepositoryContract::class,
+            fn () => new Hint\Repository([
+                __DIR__.'/../../resources',
+            ])
+        );
+
         $this->app->singleton(
             Contracts\UserSessionService::class, Services\UserSession::class
         );
