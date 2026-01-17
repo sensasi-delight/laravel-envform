@@ -15,12 +15,14 @@ final class EnvFormServiceProvider extends ServiceProvider
 {
     final public function register(): void
     {
+        // ####### DotEnv ########
+
         $this->app->bind(
-            Contracts\EnvFileService::class,
-            Services\EnvFile::class
+            DotEnv\RepositoryContract::class,
+            DotEnv\Repository::class
         );
 
-        $this->app->singleton(Services\EnvManager::class);
+        $this->app->singleton(DotEnv\Service::class);
 
         // ####### Hints ########
 

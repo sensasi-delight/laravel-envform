@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace EnvForm\Wizard;
 
 use EnvForm\Contracts\UserSessionService;
+use EnvForm\DotEnv;
 use EnvForm\DTO\EnvVar;
 use EnvForm\Hint\Service as Hint;
 use EnvForm\Registry;
-use EnvForm\Services\EnvManager;
 use EnvForm\Services\RuleEngine;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
@@ -23,11 +23,11 @@ use function Laravel\Prompts\text;
 final readonly class Service
 {
     final public function __construct(
-        private RuleEngine $ruleEngine,
+        private DotEnv\Service $dotEnv,
+        private Hint $hint,
         private Registry\Service $registry,
-        private UserSessionService $session,
-        private EnvManager $envManager,
-        private Hint $hint
+        private RuleEngine $ruleEngine,
+        private UserSessionService $session
     ) {}
 
     final public function run(): void
@@ -72,7 +72,7 @@ final readonly class Service
                     function (EnvVar $item) {
                         $key = $item->key;
                         $val = $this->session->input($key)
-                            ?? $this->envManager->getExistingValue($key);
+                            ?? $this->dotEnv->getExistingValue($key);
 
                         return ! empty($val) || $val === '0' || $val === false;
                     }
@@ -125,7 +125,7 @@ final readonly class Service
 
         $currentValue = $this->session->input($envVar->key)
             ?? Config::get($envVar->configKeys[0])
-            ?? $this->envManager->getExistingValue($envVar->key);
+            ?? $this->dotEnv->getExistingValue($envVar->key);
 
         $defaultValue = $envVar->default;
 
@@ -174,7 +174,7 @@ final readonly class Service
         }
 
         $currentValue = $this->session->input($keyName)
-            ?? $this->envManager->getExistingValue($keyName);
+            ?? $this->dotEnv->getExistingValue($keyName);
 
         if (! confirm(
             label: '🔑 Do you want to generate/regenerate APP_KEY?',
@@ -260,7 +260,7 @@ final readonly class Service
         ];
 
         $defaultValue = $this->session->input($envVar->key)
-            ?? $this->envManager->getExistingValue($envVar->key)
+            ?? $this->dotEnv->getExistingValue($envVar->key)
             ?? $envVar->default
             ?? $additionalDefaultOption;
 
@@ -275,7 +275,7 @@ final readonly class Service
 
     private function showSummaryTable(): void
     {
-        $summary = $this->envManager->getSummary();
+        $summary = $this->dotEnv->getSummary();
 
         table(
             ['Summary', ''],

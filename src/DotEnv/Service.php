@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace EnvForm\Services;
+namespace EnvForm\DotEnv;
 
-use EnvForm\Contracts\EnvFileService;
 use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
 use EnvForm\Registry;
+use EnvForm\Services\RuleEngine;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\App;
  * Orchestrator for environment file persistence and state merging.
  * Bridges the gap between the discovered registry, user session, and the physical .env file.
  */
-final class EnvManager
+final class Service
 {
     private string $targetFile = '.env';
 
@@ -25,7 +25,9 @@ final class EnvManager
     public function __construct(
         private readonly Registry\Service $registry,
         private readonly UserSessionService $session,
-        private readonly EnvFileService $file
+        private readonly RepositoryContract $repository,
+        private readonly RuleEngine $ruleEngine,
+        private readonly Formatter $formatter
     ) {}
 
     public function setTargetFile(string $filename): void
@@ -43,7 +45,7 @@ final class EnvManager
     {
         if ($this->existingValues === null) {
             $path = App::basePath($this->targetFile);
-            $this->existingValues = $this->file->read($path);
+            $this->existingValues = $this->repository->read($path);
         }
 
         return $this->existingValues->get($key);
@@ -60,13 +62,8 @@ final class EnvManager
 
     private function getPendingCount(): int
     {
-        $engine = new RuleEngine(
-            $this->session,
-            $this->registry
-        );
-
         return $this->registry->all()
-            ->filter(fn (EnvVar $var) => $engine->shouldAsk($var))
+            ->filter(fn (EnvVar $var) => $this->ruleEngine->shouldAsk($var))
             ->count();
     }
 
@@ -98,9 +95,29 @@ final class EnvManager
     public function save(): void
     {
         $path = App::basePath($this->targetFile);
-        $values = $this->getFinalValues();
+
+        // 1. Calculate Active Values
+        $activeValues = $this->getFinalValues();
+
+        // 2. Calculate Deprecated Values (Keys in existing file that are NOT in active values)
+        // We need to re-read or use existingValues to ensure we have the full picture of the file on disk
+        if ($this->existingValues === null) {
+            $this->existingValues = $this->repository->read($path);
+        }
+
+        // Keys that exist on disk but are not in the current registry/active set
+        $deprecatedValues = array_diff_key(
+            $this->existingValues->toArray(),
+            $activeValues
+        );
+
+        // 3. Prepare Metadata
         $metadata = $this->registry->all()->pluck('group', 'key')->toArray();
 
-        $this->file->write($path, $values, $metadata);
+        // 4. Format Content
+        $content = $this->formatter->format($activeValues, $deprecatedValues, $metadata);
+
+        // 5. Write to Disk
+        $this->repository->write($path, $content);
     }
 }

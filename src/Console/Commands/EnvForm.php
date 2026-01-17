@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace EnvForm\Console\Commands;
 
-use EnvForm\Contracts\EnvFileService;
+use EnvForm\DotEnv;
+use EnvForm\DotEnv\RepositoryContract;
 use EnvForm\Registry;
-use EnvForm\Services\EnvManager;
 use EnvForm\Wizard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
@@ -36,9 +36,9 @@ final class EnvForm extends Command
     protected $description = 'Interactively manage .env file based on project analysis.';
 
     final public function __construct(
+        private readonly DotEnv\Service $dotEnv,
         private readonly Wizard\Service $wizard,
-        private readonly EnvFileService $envFile,
-        private readonly EnvManager $envManager,
+        private readonly RepositoryContract $repository,
         private readonly Registry\Service $registry
     ) {
         parent::__construct();
@@ -50,7 +50,7 @@ final class EnvForm extends Command
         $this->displayWelcome();
 
         $envFile = $this->selectEnvFile();
-        $this->envManager->setTargetFile($envFile);
+        $this->dotEnv->setTargetFile($envFile);
 
         if ($this->registry->all()->isEmpty()) {
             warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
@@ -65,7 +65,7 @@ final class EnvForm extends Command
 
     private function selectEnvFile(): string
     {
-        $options = $this->envFile->findFiles(App::basePath());
+        $options = $this->repository->findFiles(App::basePath());
 
         // Add option for new file
         $options['NEW'] = '➕ Create New File...';
@@ -109,11 +109,11 @@ final class EnvForm extends Command
 
             $filename = text(
                 label: '📄 Enter the output filename',
-                default: $this->envManager->getTargetFile(),
+                default: $this->dotEnv->getTargetFile(),
                 hint: 'The file will be saved in the project root.'
             );
 
-            $this->envManager->setTargetFile($filename);
+            $this->dotEnv->setTargetFile($filename);
             $targetPath = App::basePath($filename);
 
             if (
@@ -129,7 +129,7 @@ final class EnvForm extends Command
             break;
         }
 
-        $this->envManager->save();
+        $this->dotEnv->save();
         info("✅ Successfully updated {$filename} file!");
 
         return self::SUCCESS;
