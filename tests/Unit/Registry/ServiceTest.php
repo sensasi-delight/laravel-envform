@@ -29,6 +29,11 @@ final class ServiceTest extends TestCase
 
         $repo = $this->createMock(RepositoryContract::class);
         $repo->method('scan')->willReturn($findings);
+        $repo->method('getDependencyMap')->willReturn([
+            'cache.default' => [
+                'redis' => ['cache.stores.redis.*'],
+            ],
+        ]);
 
         $service = new Service($repo);
         $vars = $service->all();
@@ -63,6 +68,11 @@ final class ServiceTest extends TestCase
 
         $repo = $this->createMock(RepositoryContract::class);
         $repo->method('scan')->willReturn($findings);
+        $repo->method('getDependencyMap')->willReturn([
+            'cache.default' => [
+                'redis' => ['cache.stores.redis.*'],
+            ],
+        ]);
 
         $service = new Service($repo);
 

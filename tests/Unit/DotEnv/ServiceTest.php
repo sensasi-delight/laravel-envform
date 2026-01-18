@@ -60,6 +60,11 @@ final class ServiceTest extends TestCase
 
         $regRepo = $this->createMock(RepositoryContract::class);
         $regRepo->method('scan')->willReturn($findings);
+        $regRepo->method('getDependencyMap')->willReturn([
+            'cache.default' => [
+                'redis' => ['cache.stores.redis.*'],
+            ],
+        ]);
         $registry = new RegistryService($regRepo);
 
         // Setup Form Values

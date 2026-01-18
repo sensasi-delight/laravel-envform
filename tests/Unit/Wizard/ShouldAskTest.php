@@ -8,7 +8,6 @@ use EnvForm\DTO\EnvVar;
 use EnvForm\FormValue\Service as FormValueService;
 use EnvForm\Registry\Service as RegistryService;
 use EnvForm\Wizard\ShouldAsk;
-use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 final class ShouldAskTest extends TestCase
@@ -25,7 +24,7 @@ final class ShouldAskTest extends TestCase
     {
         // Scenario: REDIS_HOST depends on CACHE_DRIVER, but CACHE_DRIVER isn't in registry (unlikely but possible)
         $shouldAsk = $this->createShouldAsk();
-        
+
         $var = $this->createEnvVar(
             key: 'REDIS_HOST',
             dependencies: ['cache.default' => ['redis' => ['cache.stores.redis.*']]]
@@ -42,7 +41,7 @@ final class ShouldAskTest extends TestCase
         $formValue->set('CACHE_DRIVER', 'file');
 
         $registry = $this->createMockRegistryWith('CACHE_DRIVER', 'cache.default');
-        
+
         $shouldAsk = new ShouldAsk($formValue, $registry);
 
         $var = $this->createEnvVar(
@@ -61,7 +60,7 @@ final class ShouldAskTest extends TestCase
         $formValue->set('CACHE_DRIVER', 'redis');
 
         $registry = $this->createMockRegistryWith('CACHE_DRIVER', 'cache.default');
-        
+
         $shouldAsk = new ShouldAsk($formValue, $registry);
 
         $var = $this->createEnvVar(
@@ -75,12 +74,13 @@ final class ShouldAskTest extends TestCase
 
     // --- Helpers ---
 
-    private function createShouldAsk(RegistryService $registry = null): ShouldAsk
+    private function createShouldAsk(?RegistryService $registry = null): ShouldAsk
     {
         $formValue = new FormValueService;
         if (! $registry) {
             $repo = $this->createMock(\EnvForm\Registry\RepositoryContract::class);
             $repo->method('scan')->willReturn(collect());
+            $repo->method('getDependencyMap')->willReturn([]);
             $registry = new RegistryService($repo);
         }
 
@@ -96,15 +96,20 @@ final class ShouldAskTest extends TestCase
                 'configKey' => $configKey,
                 'defaultValue' => 'default',
                 'file' => 'test.php',
-            ]
+            ],
         ]));
+        $repo->method('getDependencyMap')->willReturn([
+            'cache.default' => [
+                'redis' => ['cache.stores.redis.*'],
+            ],
+        ]);
 
         return new RegistryService($repo);
     }
 
     private function createEnvVar(
-        string $key, 
-        array $configKeys = [], 
+        string $key,
+        array $configKeys = [],
         array $dependencies = []
     ): EnvVar {
         return new EnvVar(

@@ -33,7 +33,7 @@ final class Repository extends NodeVisitorAbstract implements RepositoryContract
      *
      * @return Collection<int, array{envKey: string, configKey: string, defaultValue: mixed, file: string}>
      */
-    public function scan(): Collection
+    final public function scan(): Collection
     {
         $configPath = App::configPath();
 
@@ -158,5 +158,12 @@ final class Repository extends NodeVisitorAbstract implements RepositoryContract
         }
 
         return null;
+    }
+
+    final public function getDependencyMap(): array
+    {
+        $path = __DIR__.'/../../resources/dependencies.php';
+
+        return file_exists($path) ? require $path : [];
     }
 }

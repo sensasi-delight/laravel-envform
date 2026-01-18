@@ -18,4 +18,9 @@ interface RepositoryContract
      * @return Collection<int, array{envKey: string, configKey: string, defaultValue: mixed, file: string}>
      */
     public function scan(): Collection;
+
+    /**
+     * @return array<string, array<string, array<int, string>>>
+     */
+    public function getDependencyMap(): array;
 }
