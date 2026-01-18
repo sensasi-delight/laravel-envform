@@ -18,4 +18,14 @@ final class Service
     {
         return $this->inputs[$envKey] ?? null;
     }
+
+    final public function isDirty(): bool
+    {
+        return \count($this->inputs) > 0;
+    }
+
+    final public function clear(): void
+    {
+        $this->inputs = [];
+    }
 }

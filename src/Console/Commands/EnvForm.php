@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace EnvForm\Console\Commands;
 
 use EnvForm\DotEnv;
-use EnvForm\DotEnv\RepositoryContract;
 use EnvForm\Registry;
 use EnvForm\Wizard;
 use Illuminate\Console\Command;
@@ -37,9 +36,8 @@ final class EnvForm extends Command
 
     final public function __construct(
         private readonly DotEnv\Service $dotEnv,
+        private readonly Registry\Service $registry,
         private readonly Wizard\Service $wizard,
-        private readonly RepositoryContract $repository,
-        private readonly Registry\Service $registry
     ) {
         parent::__construct();
     }
@@ -65,10 +63,9 @@ final class EnvForm extends Command
 
     private function selectEnvFile(): string
     {
-        $options = $this->repository->findFiles(App::basePath());
+        $options = $this->dotEnv->getEnvFileOptions();
 
-        // Add option for new file
-        $options['NEW'] = '➕ Create New File...';
+        $options['new'] = '➕ Create New File...';
 
         $choice = select(
             label: '📂 Which environment file do you want to manage?',
@@ -76,7 +73,7 @@ final class EnvForm extends Command
             default: '.env'
         );
 
-        if ($choice === 'NEW') {
+        if ($choice === 'new') {
             return text(
                 label: '🆕 Enter the name of the new environment file',
                 default: '.env.local',

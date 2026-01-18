@@ -8,32 +8,37 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Finder\Finder;
 
-final readonly class Repository implements RepositoryContract
+final readonly class Repository
 {
-    public function findFiles(string $basePath): array
+    final public function findDotEnvFiles(string $basePath): Finder
     {
-        $files = Finder::create()
+        return Finder::create()
             ->files()
             ->in($basePath)
             ->name('.env*')
             ->depth(0)
             ->ignoreDotFiles(false);
-
-        $options = [];
-        foreach ($files as $file) {
-            $options[$file->getFilename()] = $file->getFilename();
-        }
-
-        return $options;
     }
 
-    public function read(string $path): Collection
+    /**
+     * @return Collection<string, string>
+     */
+    final public function read(string $path): Collection
     {
         if (! File::exists($path)) {
             return collect();
         }
 
         $content = File::get($path);
+
+        return $this->parseEnvFileContent($content);
+    }
+
+    /**
+     * @return Collection<string, string>
+     */
+    private function parseEnvFileContent(string $content): Collection
+    {
         $lines = explode("\n", $content);
         $values = collect();
 
@@ -52,7 +57,7 @@ final readonly class Repository implements RepositoryContract
         return $values;
     }
 
-    public function write(string $path, string $content): void
+    final public function write(string $path, string $content): void
     {
         File::put($path, $content);
     }

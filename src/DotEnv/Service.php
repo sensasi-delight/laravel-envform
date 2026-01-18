@@ -23,7 +23,7 @@ final class Service
     public function __construct(
         private readonly FormValue\Service $formValue,
         private readonly Registry\Service $registry,
-        private readonly RepositoryContract $repository,
+        private readonly Repository $repository,
         private readonly Formatter $formatter
     ) {}
 
@@ -105,5 +105,21 @@ final class Service
 
         // 5. Write to Disk
         $this->repository->write($path, $content);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getEnvFileOptions(
+        string $basePath = App::basePath()
+    ): array {
+        $files = $this->repository->findDotEnvFiles($basePath);
+        $options = [];
+
+        foreach ($files as $file) {
+            $options[$file->getFilename()] = $file->getFilename();
+        }
+
+        return $options;
     }
 }

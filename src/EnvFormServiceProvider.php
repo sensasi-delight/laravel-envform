@@ -17,11 +17,6 @@ final class EnvFormServiceProvider extends ServiceProvider
     {
         // ####### DotEnv ########
 
-        $this->app->bind(
-            DotEnv\RepositoryContract::class,
-            DotEnv\Repository::class
-        );
-
         $this->app->singleton(DotEnv\Service::class);
 
         // ####### Hints ########
