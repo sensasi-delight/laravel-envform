@@ -26,7 +26,7 @@ final readonly class Service
         private FormValue\Service $formValue,
         private Hint\Service $hint,
         private Registry\Service $registry,
-        private ShouldAsk $shouldAsk,
+        private ShouldAsk $shouldAsk
     ) {}
 
     final public function run(): void
