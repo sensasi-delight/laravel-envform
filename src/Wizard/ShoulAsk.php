@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace EnvForm\Rules;
+namespace EnvForm\Wizard;
 
 use EnvForm\DTO\EnvVar;
 use EnvForm\FormValue;
@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
  * Deterministic engine for evaluating dependency rules between environment variables.
  * Decides whether a variable should be prompted based on the state of its trigger variables.
  */
-final readonly class Service
+final readonly class ShouldAsk
 {
     public function __construct(
         private FormValue\Service $formValue,

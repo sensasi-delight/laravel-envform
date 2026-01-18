@@ -9,7 +9,6 @@ use EnvForm\DTO\EnvVar;
 use EnvForm\FormValue;
 use EnvForm\Hint;
 use EnvForm\Registry;
-use EnvForm\Rules;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
@@ -27,7 +26,7 @@ final readonly class Service
         private FormValue\Service $formValue,
         private Hint\Service $hint,
         private Registry\Service $registry,
-        private Rules\Service $rules,
+        private ShouldAsk $shouldAsk,
     ) {}
 
     final public function run(): void
@@ -63,7 +62,7 @@ final readonly class Service
         $menuOptions = [];
         foreach ($fileNames as $fileName) {
             $envVars = $this->registry->all()->filter(fn (EnvVar $v) => $v->group === $fileName);
-            $askVars = $envVars->filter(fn (EnvVar $v) => $this->rules->shouldAsk($v));
+            $askVars = $envVars->filter(fn (EnvVar $v) => $this->shouldAsk->shouldAsk($v));
 
             $total = str_pad((string) $askVars->count(), 2, ' ', STR_PAD_LEFT);
 
@@ -98,7 +97,7 @@ final readonly class Service
         $triggerEnvVars = $this->registry->all()
             ->filter(fn (EnvVar $v) => $v->group === $groupName)
             ->filter(fn (EnvVar $v) => $v->isTrigger)
-            ->filter(fn (EnvVar $v) => $this->rules->shouldAsk($v));
+            ->filter(fn (EnvVar $v) => $this->shouldAsk->shouldAsk($v));
 
         foreach ($triggerEnvVars as $envVar) {
             $this->askForValue($envVar);
@@ -107,7 +106,7 @@ final readonly class Service
         $nonTriggerEnvVars = $this->registry->all()
             ->filter(fn (EnvVar $v) => $v->group === $groupName)
             ->filter(fn (EnvVar $v) => ! $v->isTrigger)
-            ->filter(fn (EnvVar $v) => $this->rules->shouldAsk($v));
+            ->filter(fn (EnvVar $v) => $this->shouldAsk->shouldAsk($v));
 
         foreach ($nonTriggerEnvVars as $envVar) {
             $this->askForValue($envVar);
@@ -292,7 +291,7 @@ final readonly class Service
     private function getPendingCount(): int
     {
         return $this->registry->all()
-            ->filter(fn (EnvVar $var) => $this->rules->shouldAsk($var))
+            ->filter(fn (EnvVar $var) => $this->shouldAsk->shouldAsk($var))
             ->count();
     }
 }
