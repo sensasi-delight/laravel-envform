@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
  */
 final readonly class EnvVar
 {
-    public function __construct(
+    final public function __construct(
         /**
          * Config keys where the env key is defined.
          *
@@ -34,8 +34,6 @@ final readonly class EnvVar
          * @var array<string, array<string, string[]>>
          */
         public array $dependencies,
-
-        public string $file,
 
         public string $group,
 

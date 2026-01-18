@@ -51,7 +51,6 @@ final readonly class Service
                     $configKeys,
                     $firstOccurrence['defaultValue'],
                     $dependencies,
-                    $firstOccurrence['file'],
                     $firstOccurrence['file'], // Group by file
                     $isTrigger,
                     $envKey,
