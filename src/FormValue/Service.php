@@ -23,9 +23,4 @@ final class Service
     {
         return \count($this->inputs) > 0;
     }
-
-    final public function clear(): void
-    {
-        $this->inputs = [];
-    }
 }
