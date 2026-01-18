@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace EnvForm\DotEnv;
 
+use EnvForm\DTO\EnvVar;
 use EnvForm\FormValue;
 use EnvForm\Registry;
+use EnvForm\Wizard;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 
@@ -20,25 +22,35 @@ final class Service
     /** @var Collection<string, string>|null */
     private ?Collection $existingValues = null;
 
-    public function __construct(
+    /**
+     * @deprecated SHOULD NOT USE MODULE'S COMPONENT, USE THE SERVICE INSTEAD
+     */
+    private readonly Wizard\ShouldAsk $shouldAsk;
+
+    final public function __construct(
         private readonly FormValue\Service $formValue,
         private readonly Registry\Service $registry,
         private readonly Repository $repository,
         private readonly Formatter $formatter
-    ) {}
+    ) {
+        $this->shouldAsk = new Wizard\ShouldAsk(
+            $this->formValue,
+            $this->registry
+        );
+    }
 
-    public function setTargetFile(string $filename): void
+    final public function setTargetFile(string $filename): void
     {
         $this->targetFile = $filename;
         $this->existingValues = null;
     }
 
-    public function getTargetFile(): string
+    final public function getTargetFile(): string
     {
         return $this->targetFile;
     }
 
-    public function getExistingValue(string $key): ?string
+    final public function getExistingValue(string $key): ?string
     {
         if ($this->existingValues === null) {
             $path = App::basePath($this->targetFile);
@@ -48,31 +60,23 @@ final class Service
         return $this->existingValues->get($key);
     }
 
-    public function getCount(): int
+    final public function getCount(): int
     {
         return $this->existingValues ? $this->existingValues->count() : 0;
     }
 
-    /** @return array<string, mixed> */
-    public function getFinalValues(): array
+    /**
+     * @return array<string, bool|int|string|null> [ENV_KEY => value]
+     */
+    private function getFinalValues(): array
     {
         $final = [];
         foreach ($this->registry->all() as $var) {
             $key = $var->key;
 
-            if (($val = $this->formValue->get($key)) !== null) {
-                $final[$key] = $val;
-
-                continue;
-            }
-
-            if (($val = $this->getExistingValue($key)) !== null) {
-                $final[$key] = $val;
-
-                continue;
-            }
-
-            $final[$key] = $var->default;
+            $final[$key] = $this->formValue->get($key)
+             ?? $this->getExistingValue($key)
+             ?? $var->default;
         }
 
         return $final;
@@ -82,37 +86,31 @@ final class Service
     {
         $path = App::basePath($this->targetFile);
 
-        // 1. Calculate Active Values
-        $activeValues = $this->getFinalValues();
+        $metadata = $this->registry->all()
+            ->keyBy('key')
+            ->map(fn (EnvVar $var) => (object) [
+                'shouldAsk' => $this->shouldAsk->shouldAsk($var),
+                'group' => $var->group,
+            ])->toArray();
 
-        // 2. Calculate Deprecated Values (Keys in existing file that are NOT in active values)
-        // We need to re-read or use existingValues to ensure we have the full picture of the file on disk
-        if ($this->existingValues === null) {
-            $this->existingValues = $this->repository->read($path);
-        }
-
-        // Keys that exist on disk but are not in the current registry/active set
-        $deprecatedValues = array_diff_key(
-            $this->existingValues->toArray(),
-            $activeValues
+        $content = $this->formatter->format(
+            $this->getFinalValues(),
+            $metadata,
         );
 
-        // 3. Prepare Metadata
-        $metadata = $this->registry->all()->pluck('group', 'key')->toArray();
-
-        // 4. Format Content
-        $content = $this->formatter->format($activeValues, $deprecatedValues, $metadata);
-
-        // 5. Write to Disk
-        $this->repository->write($path, $content);
+        $this->repository->write(
+            $path,
+            $content
+        );
     }
 
     /**
      * @return array<string, string>
      */
-    public function getEnvFileOptions(
-        string $basePath = App::basePath()
+    final public function getEnvFileOptions(
+        ?string $basePath = null
     ): array {
+        $basePath = $basePath ?: App::basePath();
         $files = $this->repository->findDotEnvFiles($basePath);
         $options = [];
 
