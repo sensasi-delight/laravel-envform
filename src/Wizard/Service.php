@@ -9,7 +9,7 @@ use EnvForm\DotEnv;
 use EnvForm\DTO\EnvVar;
 use EnvForm\Hint\Service as Hint;
 use EnvForm\Registry;
-use EnvForm\Services\RuleEngine;
+use EnvForm\Rules;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
@@ -26,7 +26,7 @@ final readonly class Service
         private DotEnv\Service $dotEnv,
         private Hint $hint,
         private Registry\Service $registry,
-        private RuleEngine $ruleEngine,
+        private Rules\Service $rules,
         private UserSessionService $session
     ) {}
 
@@ -63,7 +63,7 @@ final readonly class Service
         $menuOptions = [];
         foreach ($fileNames as $fileName) {
             $envVars = $this->registry->all()->filter(fn (EnvVar $v) => $v->group === $fileName);
-            $askVars = $envVars->filter(fn (EnvVar $v) => $this->ruleEngine->shouldAsk($v));
+            $askVars = $envVars->filter(fn (EnvVar $v) => $this->rules->shouldAsk($v));
 
             $total = str_pad((string) $askVars->count(), 2, ' ', STR_PAD_LEFT);
 
@@ -98,7 +98,7 @@ final readonly class Service
         $triggerEnvVars = $this->registry->all()
             ->filter(fn (EnvVar $v) => $v->group === $groupName)
             ->filter(fn (EnvVar $v) => $v->isTrigger)
-            ->filter(fn (EnvVar $v) => $this->ruleEngine->shouldAsk($v));
+            ->filter(fn (EnvVar $v) => $this->rules->shouldAsk($v));
 
         foreach ($triggerEnvVars as $envVar) {
             $this->askForValue($envVar);
@@ -107,7 +107,7 @@ final readonly class Service
         $nonTriggerEnvVars = $this->registry->all()
             ->filter(fn (EnvVar $v) => $v->group === $groupName)
             ->filter(fn (EnvVar $v) => ! $v->isTrigger)
-            ->filter(fn (EnvVar $v) => $this->ruleEngine->shouldAsk($v));
+            ->filter(fn (EnvVar $v) => $this->rules->shouldAsk($v));
 
         foreach ($nonTriggerEnvVars as $envVar) {
             $this->askForValue($envVar);

@@ -7,7 +7,7 @@ namespace EnvForm\DotEnv;
 use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
 use EnvForm\Registry;
-use EnvForm\Services\RuleEngine;
+use EnvForm\Rules;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 
@@ -26,7 +26,7 @@ final class Service
         private readonly Registry\Service $registry,
         private readonly UserSessionService $session,
         private readonly RepositoryContract $repository,
-        private readonly RuleEngine $ruleEngine,
+        private readonly Rules\Service $rules,
         private readonly Formatter $formatter
     ) {}
 
@@ -63,7 +63,7 @@ final class Service
     private function getPendingCount(): int
     {
         return $this->registry->all()
-            ->filter(fn (EnvVar $var) => $this->ruleEngine->shouldAsk($var))
+            ->filter(fn (EnvVar $var) => $this->rules->shouldAsk($var))
             ->count();
     }
 
