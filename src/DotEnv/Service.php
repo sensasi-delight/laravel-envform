@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace EnvForm\DotEnv;
 
-use EnvForm\DTO\EnvVar;
 use EnvForm\FormValue;
 use EnvForm\Registry;
-use EnvForm\Rules;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 
@@ -26,7 +24,6 @@ final class Service
         private readonly FormValue\Service $formValue,
         private readonly Registry\Service $registry,
         private readonly RepositoryContract $repository,
-        private readonly Rules\Service $rules,
         private readonly Formatter $formatter
     ) {}
 
@@ -51,20 +48,9 @@ final class Service
         return $this->existingValues->get($key);
     }
 
-    /** @return array{pending: int, existing: int} */
-    public function getSummary(): array
+    public function getCount(): int
     {
-        return [
-            'pending' => $this->getPendingCount(),
-            'existing' => $this->existingValues ? $this->existingValues->count() : 0,
-        ];
-    }
-
-    private function getPendingCount(): int
-    {
-        return $this->registry->all()
-            ->filter(fn (EnvVar $var) => $this->rules->shouldAsk($var))
-            ->count();
+        return $this->existingValues ? $this->existingValues->count() : 0;
     }
 
     /** @return array<string, mixed> */

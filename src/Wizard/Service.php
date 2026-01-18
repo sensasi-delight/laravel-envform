@@ -275,14 +275,24 @@ final readonly class Service
 
     private function showSummaryTable(): void
     {
-        $summary = $this->dotEnv->getSummary();
-
         table(
             ['Summary', ''],
             [
-                ['ENV vars need configuration', (string) $summary['pending']],
-                ['Existing vars in file', (string) $summary['existing']],
+                [
+                    'ENV vars need configuration',
+                    (string) $this->getPendingCount(),
+                ], [
+                    'Existing vars in file',
+                    (string) $this->dotEnv->getCount(),
+                ],
             ]
         );
+    }
+
+    private function getPendingCount(): int
+    {
+        return $this->registry->all()
+            ->filter(fn (EnvVar $var) => $this->rules->shouldAsk($var))
+            ->count();
     }
 }
