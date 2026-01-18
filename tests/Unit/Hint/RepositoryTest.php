@@ -42,7 +42,7 @@ PHP;
 
     public function test_it_returns_empty_string_if_key_not_found(): void
     {
-        File::put($this->tempPath.'/hints.php', "<?php return [];");
+        File::put($this->tempPath.'/hints.php', '<?php return [];');
         $repo = new Repository([$this->tempPath]);
 
         $this->assertEquals('', $repo->get('missing.key'));

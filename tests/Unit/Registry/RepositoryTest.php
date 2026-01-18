@@ -11,6 +11,7 @@ use Tests\TestCase;
 final class RepositoryTest extends TestCase
 {
     private string $tempBasePath;
+
     private string $tempConfigPath;
 
     protected function setUp(): void
