@@ -40,15 +40,15 @@ final readonly class Service
             $selectedGroup = select(
                 label: '📂 Select a configuration file to configure',
                 options: $menuOptions,
-                default: 'EXIT',
+                default: 'exit',
                 scroll: \count($menuOptions)
             );
 
-            if ($selectedGroup === 'EXIT') {
+            if ($selectedGroup === 'exit') {
                 break;
             }
 
-            $this->configureGroup((string) $selectedGroup);
+            $this->configureGroup((string) $selectedGroup.'.php');
         }
     }
 
@@ -57,14 +57,21 @@ final readonly class Service
      */
     private function buildMenuOptions(): array
     {
-        $fileNames = $this->registry->groups();
+        $groups = $this->registry->groups();
 
         $menuOptions = [];
-        foreach ($fileNames as $fileName) {
-            $envVars = $this->registry->all()->filter(fn (EnvVar $v) => $v->group === $fileName);
-            $askVars = $envVars->filter(fn (EnvVar $v) => $this->shouldAsk->shouldAsk($v));
+        foreach ($groups as $group) {
+            $askVars = $this->registry
+                ->all()
+                ->filter(fn (EnvVar $v) => $v->group === $group)
+                ->filter(fn (EnvVar $v) => $this->shouldAsk->shouldAsk($v));
 
-            $total = str_pad((string) $askVars->count(), 2, ' ', STR_PAD_LEFT);
+            $envCount = str_pad(
+                (string) $askVars->count(),
+                2,
+                ' ',
+                STR_PAD_LEFT
+            );
 
             $filled = str_pad(
                 (string) $askVars->filter(
@@ -81,11 +88,17 @@ final readonly class Service
                 STR_PAD_LEFT
             );
 
-            $status = ($filled >= $total) ? '✅' : "({$filled}/{$total})";
-            $menuOptions[$fileName] = "{$status} {$fileName}";
+            $status = ($filled >= $envCount) ? '✅' : "({$filled}/{$envCount})";
+
+            $selectValue = str_replace(
+                '.php',
+                '',
+                $group
+            );
+            $menuOptions[$selectValue] = "{$status} {$group}";
         }
 
-        $menuOptions['EXIT'] = '💾 Save & Exit';
+        $menuOptions['exit'] = '💾 Save & Exit';
 
         return $menuOptions;
     }
