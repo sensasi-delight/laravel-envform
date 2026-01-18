@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace EnvForm\DotEnv;
 
-use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
+use EnvForm\FormValue;
 use EnvForm\Registry;
 use EnvForm\Rules;
 use Illuminate\Support\Collection;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\App;
 
 /**
  * Orchestrator for environment file persistence and state merging.
- * Bridges the gap between the discovered registry, user session, and the physical .env file.
+ * Bridges the gap between the discovered registry, form value, and the physical .env file.
  */
 final class Service
 {
@@ -23,8 +23,8 @@ final class Service
     private ?Collection $existingValues = null;
 
     public function __construct(
+        private readonly FormValue\Service $formValue,
         private readonly Registry\Service $registry,
-        private readonly UserSessionService $session,
         private readonly RepositoryContract $repository,
         private readonly Rules\Service $rules,
         private readonly Formatter $formatter
@@ -74,7 +74,7 @@ final class Service
         foreach ($this->registry->all() as $var) {
             $key = $var->key;
 
-            if (($val = $this->session->input($key)) !== null) {
+            if (($val = $this->formValue->get($key)) !== null) {
                 $final[$key] = $val;
 
                 continue;

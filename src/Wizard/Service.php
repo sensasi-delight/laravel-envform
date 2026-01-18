@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace EnvForm\Wizard;
 
-use EnvForm\Contracts\UserSessionService;
 use EnvForm\DotEnv;
 use EnvForm\DTO\EnvVar;
-use EnvForm\Hint\Service as Hint;
+use EnvForm\FormValue;
+use EnvForm\Hint;
 use EnvForm\Registry;
 use EnvForm\Rules;
 use Illuminate\Support\Facades\Artisan;
@@ -24,10 +24,10 @@ final readonly class Service
 {
     final public function __construct(
         private DotEnv\Service $dotEnv,
-        private Hint $hint,
+        private FormValue\Service $formValue,
+        private Hint\Service $hint,
         private Registry\Service $registry,
         private Rules\Service $rules,
-        private UserSessionService $session
     ) {}
 
     final public function run(): void
@@ -71,7 +71,7 @@ final readonly class Service
                 (string) $askVars->filter(
                     function (EnvVar $item) {
                         $key = $item->key;
-                        $val = $this->session->input($key)
+                        $val = $this->formValue->get($key)
                             ?? $this->dotEnv->getExistingValue($key);
 
                         return ! empty($val) || $val === '0' || $val === false;
@@ -123,7 +123,7 @@ final readonly class Service
             return;
         }
 
-        $currentValue = $this->session->input($envVar->key)
+        $currentValue = $this->formValue->get($envVar->key)
             ?? Config::get($envVar->configKeys[0])
             ?? $this->dotEnv->getExistingValue($envVar->key);
 
@@ -145,7 +145,7 @@ final readonly class Service
                 $boolInitial = strtolower($initial) === 'true';
             }
 
-            $this->session->set(
+            $this->formValue->set(
                 $envVar->key,
                 confirm(
                     label: $label,
@@ -157,7 +157,7 @@ final readonly class Service
             return;
         }
 
-        $this->session->set(
+        $this->formValue->set(
             $envVar->key,
             text(
                 label: $label,
@@ -173,7 +173,7 @@ final readonly class Service
             return false;
         }
 
-        $currentValue = $this->session->input($keyName)
+        $currentValue = $this->formValue->get($keyName)
             ?? $this->dotEnv->getExistingValue($keyName);
 
         if (! confirm(
@@ -188,7 +188,7 @@ final readonly class Service
             parameters: ['--show' => true]
         );
 
-        $this->session->set(
+        $this->formValue->set(
             $keyName,
             trim(Artisan::output())
         );
@@ -226,7 +226,7 @@ final readonly class Service
             return false;
         }
 
-        $this->session->set(
+        $this->formValue->set(
             $ekd->key,
             $this->buildSelect(
                 label: "🔌 {$ekd->key}",
@@ -259,7 +259,7 @@ final readonly class Service
             ...$additionalOptions,
         ];
 
-        $defaultValue = $this->session->input($envVar->key)
+        $defaultValue = $this->formValue->get($envVar->key)
             ?? $this->dotEnv->getExistingValue($envVar->key)
             ?? $envVar->default
             ?? $additionalDefaultOption;
@@ -267,7 +267,7 @@ final readonly class Service
         return select(
             label: $label,
             options: $availableOptions,
-            default: $defaultValue,
+            default: (string) $defaultValue,
             hint: $this->hint->get($envVar->configKeys[0]),
             scroll: \count($availableOptions)
         );

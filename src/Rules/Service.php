@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace EnvForm\Rules;
 
-use EnvForm\Contracts\UserSessionService;
 use EnvForm\DTO\EnvVar;
+use EnvForm\FormValue;
 use EnvForm\Registry;
 use Illuminate\Support\Collection;
 
@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
 final readonly class Service
 {
     public function __construct(
-        private UserSessionService $state,
+        private FormValue\Service $formValue,
         private Registry\Service $registry
     ) {}
 
@@ -37,7 +37,7 @@ final readonly class Service
                 continue;
             }
 
-            $currentTriggerValue = (string) $this->state->input($triggerEnvKey->key);
+            $currentTriggerValue = (string) $this->formValue->get($triggerEnvKey->key);
 
             if (! $currentTriggerValue) {
                 continue;

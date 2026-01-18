@@ -33,9 +33,9 @@ final class EnvFormServiceProvider extends ServiceProvider
             ])
         );
 
-        $this->app->singleton(
-            Contracts\UserSessionService::class, Services\UserSession::class
-        );
+        // ####### FormValue ########
+
+        $this->app->singleton(FormValue\Service::class);
 
         // #### Registry #####
 
