@@ -37,8 +37,6 @@ final class Repository extends NodeVisitorAbstract implements RepositoryContract
     {
         $configPath = App::configPath();
 
-        info("🔍 Analyzing project configuration in: {$configPath}...");
-
         return $this->parseConfigDirectory($configPath);
     }
 
