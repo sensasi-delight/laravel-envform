@@ -260,13 +260,17 @@ final readonly class Service
         ?string $additionalDefaultOption = null
     ): int|string {
 
-        /** @var string[] $availableOptions */
-        $availableOptions = [
+        /** @var array<string, string> $availableOptions */
+        $availableOptions = [];
+
+        foreach ([
             ...array_keys(Config::get(
                 $optionsRefConfigKey
             )),
             ...$additionalOptions,
-        ];
+        ] as $option) {
+            $availableOptions[(string) $option] = (string) $option;
+        }
 
         $defaultValue = $this->formValue->get($envVar->key)
             ?? $this->dotEnv->getExistingValue($envVar->key)
