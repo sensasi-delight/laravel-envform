@@ -7,8 +7,9 @@ namespace Tests\Unit\ShouldAsk;
 use EnvForm\FormValue\Service as FormValueService;
 use EnvForm\Registry\RepositoryContract as RegistryRepositoryContract;
 use EnvForm\Registry\Service as RegistryService;
-use EnvForm\ShouldAsk\RepositoryContract as ShouldAskRepositoryContract;
+use EnvForm\ShouldAsk\RepositoryContract;
 use EnvForm\ShouldAsk\Service;
+use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
 
 final class ServiceTest extends TestCase
@@ -17,8 +18,10 @@ final class ServiceTest extends TestCase
 
     private RegistryService $registry;
 
-    private ShouldAskRepositoryContract $dependencyRepository;
+    /** @var RepositoryContract&MockObject */
+    private RepositoryContract $dependencyRepository;
 
+    /** @var RegistryRepositoryContract&MockObject */
     private RegistryRepositoryContract $registryRepository;
 
     protected function setUp(): void
@@ -26,19 +29,22 @@ final class ServiceTest extends TestCase
         parent::setUp();
 
         $this->formValue = new FormValueService;
-        $this->dependencyRepository = $this->createMock(ShouldAskRepositoryContract::class);
+        $this->dependencyRepository = $this->createMock(RepositoryContract::class);
         $this->registryRepository = $this->createMock(RegistryRepositoryContract::class);
     }
 
     public function test_it_always_returns_true_if_no_dependency_rules_match(): void
     {
-        // Scenario: APP_NAME has no dependencies.
-
         $this->dependencyRepository->method('getMap')->willReturn([
             'cache.stores.*' => 'cache.default',
         ]);
 
-        $this->setupRegistryWith('APP_NAME', 'app.name');
+        $this->setupRegistryWith([
+            [
+                'envKey' => 'APP_NAME',
+                'configKey' => 'app.name',
+            ],
+        ]);
 
         $service = new Service(
             $this->formValue,
@@ -47,29 +53,35 @@ final class ServiceTest extends TestCase
         );
 
         $var = $this->registry->all()->firstWhere('key', 'APP_NAME');
+        $this->assertNotNull($var);
 
         $this->assertTrue($service->isVisible($var));
     }
 
     public function test_it_returns_false_if_trigger_value_does_not_match_dependency(): void
     {
-        // Scenario: REDIS_HOST matches 'cache.stores.redis.*'
-        // Rule: 'cache.stores.*' => 'cache.default'
-        // Trigger: 'cache.default' is 'file' (mismatch)
-
         $this->dependencyRepository->method('getMap')->willReturn([
             'cache.stores.*' => 'cache.default',
         ]);
 
-        // Registry map for hydration
         $depMap = [
             'cache.default' => ['redis' => ['cache.stores.redis.*']],
         ];
 
-        $this->setupRegistryWith('REDIS_HOST', 'cache.stores.redis.host', $depMap);
+        // We must register the Trigger Variable (CACHE_DRIVER) so the service can resolve it
+        $this->setupRegistryWith([
+            [
+                'envKey' => 'CACHE_DRIVER',
+                'configKey' => 'cache.default',
+            ],
+            [
+                'envKey' => 'REDIS_HOST',
+                'configKey' => 'cache.stores.redis.host',
+            ],
+        ], $depMap);
 
-        // Set trigger value
-        $this->formValue->set('cache.default', 'file');
+        // FormValue stores by ENV KEY
+        $this->formValue->set('CACHE_DRIVER', 'file');
 
         $service = new Service(
             $this->formValue,
@@ -78,19 +90,22 @@ final class ServiceTest extends TestCase
         );
 
         $var = $this->registry->all()->firstWhere('key', 'REDIS_HOST');
+        $this->assertNotNull($var);
 
         $this->assertFalse($service->isVisible($var));
     }
 
-    private function setupRegistryWith(string $envKey, string $configKey, array $depMap = []): void
+    /**
+     * @param  array<int, array{envKey: string, configKey: string}>  $items
+     * @param  array<string, array<string, array<int, string>>>  $depMap
+     */
+    private function setupRegistryWith(array $items, array $depMap = []): void
     {
-        $findings = collect([
-            [
-                'envKey' => $envKey,
-                'configKey' => $configKey,
-                'defaultValue' => null,
-                'file' => 'test.php',
-            ],
+        $findings = collect($items)->map(fn ($item) => [
+            'envKey' => $item['envKey'],
+            'configKey' => $item['configKey'],
+            'defaultValue' => null,
+            'file' => 'test.php',
         ]);
 
         $this->registryRepository->method('scan')->willReturn($findings);

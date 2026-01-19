@@ -13,6 +13,7 @@ use EnvForm\Registry\Service as RegistryService;
 use EnvForm\ShouldAsk\RepositoryContract as ShouldAskRepositoryContract;
 use EnvForm\ShouldAsk\Service as ShouldAskService;
 use Illuminate\Support\Facades\File;
+use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
 
 final class ServiceTest extends TestCase
@@ -24,6 +25,7 @@ final class ServiceTest extends TestCase
         parent::setUp();
         // Orchestra's basePath is usually the workbench or vendor dir.
         // We will override it to current dir for simplicity of file checking.
+        $this->assertNotNull($this->app);
         $this->app->setBasePath(__DIR__);
         $this->tempEnvFile = __DIR__.'/.env.test';
     }
@@ -60,12 +62,11 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
+        /** @var RepositoryContract&MockObject $regRepo */
         $regRepo = $this->createMock(RepositoryContract::class);
         $regRepo->method('scan')->willReturn($findings);
         $regRepo->method('getDependencyMap')->willReturn([
-            'cache.default' => [
-                'redis' => ['cache.stores.redis.*'],
-            ],
+            'cache.stores.redis.*' => 'cache.default',
         ]);
         $registry = new RegistryService($regRepo);
 
@@ -79,6 +80,7 @@ final class ServiceTest extends TestCase
         $repo = new Repository;
         $formatter = new Formatter;
 
+        /** @var ShouldAskRepositoryContract&MockObject $depRepo */
         $depRepo = $this->createMock(ShouldAskRepositoryContract::class);
         $depRepo->method('getMap')->willReturn([
             'cache.stores.*' => 'cache.default',

@@ -25,6 +25,7 @@ final class RepositoryTest extends TestCase
             File::makeDirectory($this->tempConfigPath, 0755, true);
         }
 
+        $this->assertNotNull($this->app);
         $this->app->setBasePath($this->tempBasePath);
     }
 
@@ -108,6 +109,7 @@ PHP;
         $this->assertCount(2, $results);
 
         $driverOne = $results->firstWhere('envKey', 'DRIVER_ONE');
+        $this->assertNotNull($driverOne);
         $this->assertSame('drivers.drivers.*', $driverOne['configKey']);
     }
 }

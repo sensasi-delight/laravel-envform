@@ -1,6 +1,8 @@
 parameters:
 
     paths:
+        - resources/
         - src/
+        - tests/
 
     level: 8

@@ -6,6 +6,7 @@ namespace Tests\Unit\Registry;
 
 use EnvForm\Registry\RepositoryContract;
 use EnvForm\Registry\Service;
+use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
 
 final class ServiceTest extends TestCase
@@ -27,6 +28,7 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
+        /** @var RepositoryContract&MockObject $repo */
         $repo = $this->createMock(RepositoryContract::class);
         $repo->method('scan')->willReturn($findings);
         $repo->method('getDependencyMap')->willReturn([
@@ -39,11 +41,13 @@ final class ServiceTest extends TestCase
         $this->assertCount(2, $vars);
 
         $appName = $vars->firstWhere('key', 'APP_NAME');
+        $this->assertNotNull($appName);
         $this->assertSame('Laravel', $appName->default);
         $this->assertSame('app.php', $appName->group);
         $this->assertTrue($appName->configKeys->contains('app.name'));
 
         $dbHost = $vars->firstWhere('key', 'DB_HOST');
+        $this->assertNotNull($dbHost);
         $this->assertSame('127.0.0.1', $dbHost->default);
     }
 
@@ -64,6 +68,7 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
+        /** @var RepositoryContract&MockObject $repo */
         $repo = $this->createMock(RepositoryContract::class);
         $repo->method('scan')->willReturn($findings);
         $repo->method('getDependencyMap')->willReturn([
@@ -73,9 +78,11 @@ final class ServiceTest extends TestCase
         $service = new Service($repo);
 
         $cacheDriver = $service->find('cache.default');
+        $this->assertNotNull($cacheDriver);
         $this->assertTrue($cacheDriver->isTrigger);
 
         $redisHost = $service->find('cache.stores.redis.host');
+        $this->assertNotNull($redisHost);
         $this->assertFalse($redisHost->isTrigger);
     }
 }
