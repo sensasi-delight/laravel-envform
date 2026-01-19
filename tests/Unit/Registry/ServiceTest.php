@@ -30,9 +30,7 @@ final class ServiceTest extends TestCase
         $repo = $this->createMock(RepositoryContract::class);
         $repo->method('scan')->willReturn($findings);
         $repo->method('getDependencyMap')->willReturn([
-            'cache.default' => [
-                'redis' => ['cache.stores.redis.*'],
-            ],
+            'cache.stores.redis.*' => 'cache.default',
         ]);
 
         $service = new Service($repo);
@@ -69,9 +67,7 @@ final class ServiceTest extends TestCase
         $repo = $this->createMock(RepositoryContract::class);
         $repo->method('scan')->willReturn($findings);
         $repo->method('getDependencyMap')->willReturn([
-            'cache.default' => [
-                'redis' => ['cache.stores.redis.*'],
-            ],
+            'cache.stores.redis.*' => 'cache.default',
         ]);
 
         $service = new Service($repo);
@@ -80,8 +76,6 @@ final class ServiceTest extends TestCase
         $this->assertTrue($cacheDriver->isTrigger);
 
         $redisHost = $service->find('cache.stores.redis.host');
-        // Expected dependency: ['cache.default' => ['redis' => ['cache.stores.redis.*']]]
-        $this->assertArrayHasKey('cache.default', $redisHost->dependencies);
-        $this->assertArrayHasKey('redis', $redisHost->dependencies['cache.default']);
+        $this->assertFalse($redisHost->isTrigger);
     }
 }

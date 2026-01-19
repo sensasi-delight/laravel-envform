@@ -7,7 +7,7 @@ namespace EnvForm\DotEnv;
 use EnvForm\DTO\EnvVar;
 use EnvForm\FormValue;
 use EnvForm\Registry;
-use EnvForm\Wizard;
+use EnvForm\ShouldAsk;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 
@@ -22,22 +22,13 @@ final class Service
     /** @var Collection<string, string>|null */
     private ?Collection $existingValues = null;
 
-    /**
-     * @deprecated SHOULD NOT USE MODULE'S COMPONENT, USE THE SERVICE INSTEAD
-     */
-    private readonly Wizard\ShouldAsk $shouldAsk;
-
     final public function __construct(
         private readonly FormValue\Service $formValue,
         private readonly Registry\Service $registry,
+        private readonly ShouldAsk\Service $shouldAsk,
         private readonly Repository $repository,
         private readonly Formatter $formatter
-    ) {
-        $this->shouldAsk = new Wizard\ShouldAsk(
-            $this->formValue,
-            $this->registry
-        );
-    }
+    ) {}
 
     final public function setTargetFile(string $filename): void
     {
@@ -75,8 +66,8 @@ final class Service
             $key = $var->key;
 
             $final[$key] = $this->formValue->get($key)
-             ?? $this->getExistingValue($key)
-             ?? $var->default;
+                ?? $this->getExistingValue($key)
+                ?? $var->default;
         }
 
         return $final;
@@ -89,7 +80,7 @@ final class Service
         $metadata = $this->registry->all()
             ->keyBy('key')
             ->map(fn (EnvVar $var) => (object) [
-                'shouldAsk' => $this->shouldAsk->shouldAsk($var),
+                'shouldAsk' => $this->shouldAsk->isVisible($var),
                 'group' => $var->group,
             ])->toArray();
 

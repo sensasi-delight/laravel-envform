@@ -9,6 +9,7 @@ use EnvForm\DTO\EnvVar;
 use EnvForm\FormValue;
 use EnvForm\Hint;
 use EnvForm\Registry;
+use EnvForm\ShouldAsk;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 
@@ -26,7 +27,7 @@ final readonly class Service
         private FormValue\Service $formValue,
         private Hint\Service $hint,
         private Registry\Service $registry,
-        private ShouldAsk $shouldAsk
+        private ShouldAsk\Service $shouldAsk
     ) {}
 
     final public function run(): void
@@ -61,10 +62,7 @@ final readonly class Service
 
         $menuOptions = [];
         foreach ($groups as $group) {
-            $askVars = $this->registry
-                ->all()
-                ->filter(fn (EnvVar $v) => $v->group === $group)
-                ->filter(fn (EnvVar $v) => $this->shouldAsk->shouldAsk($v));
+            $askVars = $this->shouldAsk->getVisibleVariablesByGroup($group);
 
             $envCount = str_pad(
                 (string) $askVars->count(),
@@ -107,19 +105,18 @@ final readonly class Service
     {
         info("🛠️  Configuring settings for: {$groupName}");
 
-        $triggerEnvVars = $this->registry->all()
-            ->filter(fn (EnvVar $v) => $v->group === $groupName)
-            ->filter(fn (EnvVar $v) => $v->isTrigger)
-            ->filter(fn (EnvVar $v) => $this->shouldAsk->shouldAsk($v));
+        $triggerEnvVars = $this->shouldAsk->getVisibleVariablesByGroup($groupName)
+            ->filter(fn (EnvVar $v) => $v->isTrigger);
 
         foreach ($triggerEnvVars as $envVar) {
             $this->askForValue($envVar);
         }
 
-        $nonTriggerEnvVars = $this->registry->all()
-            ->filter(fn (EnvVar $v) => $v->group === $groupName)
-            ->filter(fn (EnvVar $v) => ! $v->isTrigger)
-            ->filter(fn (EnvVar $v) => $this->shouldAsk->shouldAsk($v));
+        $this->shouldAsk->refresh();
+
+        $nonTriggerEnvVars = $this->shouldAsk
+            ->getVisibleVariablesByGroup($groupName)
+            ->filter(fn (EnvVar $v) => ! $v->isTrigger);
 
         foreach ($nonTriggerEnvVars as $envVar) {
             $this->askForValue($envVar);
@@ -292,19 +289,12 @@ final readonly class Service
             [
                 [
                     'ENV vars need configuration',
-                    (string) $this->getPendingCount(),
+                    (string) $this->shouldAsk->countVisible(),
                 ], [
                     'Existing vars in file',
                     (string) $this->dotEnv->getCount(),
                 ],
             ]
         );
-    }
-
-    private function getPendingCount(): int
-    {
-        return $this->registry->all()
-            ->filter(fn (EnvVar $var) => $this->shouldAsk->shouldAsk($var))
-            ->count();
     }
 }

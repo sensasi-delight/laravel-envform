@@ -20,7 +20,7 @@ interface RepositoryContract
     public function scan(): Collection;
 
     /**
-     * @return array<string, array<string, array<int, string>>>
+     * @return array<string, string>
      */
     public function getDependencyMap(): array;
 }

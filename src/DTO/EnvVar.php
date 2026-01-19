@@ -27,14 +27,6 @@ final readonly class EnvVar
          */
         public bool|int|null|string $default,
 
-        /**
-         * Dependencies for this key.
-         * Structure: ['triggerConfigKey' => ['value' => ['patterns']]]
-         *
-         * @var array<string, array<string, string[]>>
-         */
-        public array $dependencies,
-
         public string $group,
 
         /**

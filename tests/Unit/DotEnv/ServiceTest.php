@@ -10,6 +10,8 @@ use EnvForm\DotEnv\Service;
 use EnvForm\FormValue\Service as FormValueService;
 use EnvForm\Registry\RepositoryContract;
 use EnvForm\Registry\Service as RegistryService;
+use EnvForm\ShouldAsk\RepositoryContract as ShouldAskRepositoryContract;
+use EnvForm\ShouldAsk\Service as ShouldAskService;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -77,7 +79,14 @@ final class ServiceTest extends TestCase
         $repo = new Repository;
         $formatter = new Formatter;
 
-        $service = new Service($formValue, $registry, $repo, $formatter);
+        $depRepo = $this->createMock(ShouldAskRepositoryContract::class);
+        $depRepo->method('getMap')->willReturn([
+            'cache.stores.*' => 'cache.default',
+        ]);
+
+        $shouldAsk = new ShouldAskService($formValue, $registry, $depRepo);
+
+        $service = new Service($formValue, $registry, $shouldAsk, $repo, $formatter);
         $service->setTargetFile('.env.test');
 
         $service->save();

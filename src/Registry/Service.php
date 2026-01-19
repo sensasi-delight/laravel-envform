@@ -19,10 +19,13 @@ final readonly class Service
         private readonly RepositoryContract $repository,
     ) {
         $rawFindings = $this->repository->scan();
-        $rules = $this->getAllRules();
+        $dependencyMap = $this->repository->getDependencyMap();
 
         $this->vars = $rawFindings->groupBy('envKey')
-            ->map(function (Collection $occurrences, string $envKey) use ($rules) {
+            ->map(function (
+                Collection $occurrences,
+                string $envKey
+            ) use ($dependencyMap): EnvVar {
                 $configKeys = $occurrences->pluck('configKey');
                 $firstOccurrence = $occurrences->first();
 
@@ -30,29 +33,16 @@ final readonly class Service
                     throw new \Exception("Could not find any occurrences for {$envKey}", 1);
                 }
 
-                // Calculate dependencies based on rules
-                $dependencies = [];
-                foreach ($rules as $triggerKey => $conditions) {
-                    foreach ($conditions as $triggerValue => $patterns) {
-                        foreach ($configKeys as $ck) {
-                            foreach ($patterns as $pattern) {
-                                if (fnmatch($pattern, $ck)) {
-                                    $dependencies[$triggerKey][$triggerValue] = $patterns;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                $isTrigger = $configKeys->contains(fn (string $configKey) => \array_key_exists($configKey, $rules));
-
                 return new EnvVar(
                     $configKeys,
                     $firstOccurrence['defaultValue'],
-                    $dependencies,
                     $firstOccurrence['file'], // Group by file
-                    $isTrigger,
+                    $configKeys->contains(fn (
+                        string $configKey
+                    ) => \in_array(
+                        $configKey,
+                        $dependencyMap
+                    )),
                     $envKey,
                 );
             })->sortBy('key')->values();
@@ -75,13 +65,5 @@ final readonly class Service
     public function groups(): Collection
     {
         return $this->vars->pluck('group')->unique();
-    }
-
-    /**
-     * @return array<string, array<string, array<int, string>>>
-     */
-    private function getAllRules(): array
-    {
-        return $this->repository->getDependencyMap();
     }
 }

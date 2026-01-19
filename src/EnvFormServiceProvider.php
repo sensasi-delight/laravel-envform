@@ -40,6 +40,14 @@ final class EnvFormServiceProvider extends ServiceProvider
             Registry\RepositoryContract::class,
             Registry\Repository::class
         );
+
+        // #### ShouldAsk #####
+
+        $this->app->singleton(ShouldAsk\Service::class);
+        $this->app->bind(
+            ShouldAsk\RepositoryContract::class,
+            ShouldAsk\Repository::class
+        );
     }
 
     final public function boot(): void
