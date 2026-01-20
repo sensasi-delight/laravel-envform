@@ -40,7 +40,7 @@ With **EnvForm**, you get the best of both worlds: a lean config and a fully-doc
 
 ## ✨ Features
 
-- **🔍 Smart Analysis**: Automatically finds `env('KEY', 'default')` usage in your `config` directory.
+- **🔍 Smart Analysis**: Automatically finds `env('KEY', 'default')` usage in your `config` directory using high-fidelity AST analysis.
 - **💅 Interactive UI**: Built with [Laravel Prompts](https://laravel.com/docs/prompts) for a sleek, modern developer experience.
 - **🧠 Context Aware**:
   - Automatically suggests generating `APP_KEY` if missing.
@@ -73,7 +73,7 @@ php artisan envform
 
 ### The Process
 
-1. **Analyze**: The command analyzes your `config/` folder.
+1. **Analyze**: The command performs an AST analysis of your `config/` folder.
 2. **Select**: Choose which config group you want to edit (e.g., `database`).
 3. **Input**: Fill in the values. The tool shows you the key, description, and default value.
 4. **Save**: Review your progress and save to `.env` when done.
@@ -86,14 +86,14 @@ We understand that `.env` files contain sensitive information. **Laravel EnvForm
 
 - **100% Local Processing**: All analysis and file writing happen entirely on your local machine.
 - **No Outbound Connections**: This package has **zero** HTTP dependencies (no Guzzle, no Curl). It cannot and does not send your data to any external server.
-- **Static Analysis Only**: We use RegEx-based static analysis to read your `config/*.php` files. We never execute your code or load your environment into memory in a way that could be exported.
+- **AST Static Analysis**: We use `nikic/php-parser` to traverse your configuration's abstract syntax tree. We never execute your code or load your environment into memory in a way that could be exported.
 - **Transparent Execution**: The source code is open and intentionally kept simple so you can audit it yourself.
 
 ---
 
 ## 🤖 How It Works
 
-EnvForm performs a **Local Static Analysis** using RegEx to parse your PHP configuration files. It looks for the standard Laravel `env()` helper pattern:
+EnvForm performs a **Local Static Analysis** using an AST parser to read your PHP configuration files. It looks for the standard Laravel `env()` helper pattern:
 
 ```php
 // config/app.php
@@ -102,8 +102,8 @@ EnvForm performs a **Local Static Analysis** using RegEx to parse your PHP confi
 
 The tool:
 
-1. **Analyzes** your `config/` directory.
-2. **Extracts** keys and default values.
+1. **Analyzes** your `config/` directory using PHP-Parser.
+2. **Extracts** keys and default values from the AST nodes.
 3. **Merges** them with your existing `.env` values (if any).
 4. **Interactively** prompts you for updates.
 5. **Writes** the final result back to your project root.
