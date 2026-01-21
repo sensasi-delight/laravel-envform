@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Hint;
 
-final readonly class Repository implements RepositoryContract
+readonly class Repository
 {
     final public function __construct(
         /**

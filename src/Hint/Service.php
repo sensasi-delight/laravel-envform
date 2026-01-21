@@ -7,7 +7,7 @@ namespace EnvForm\Hint;
 final readonly class Service
 {
     public function __construct(
-        private readonly RepositoryContract $repository,
+        private readonly Repository $repository,
     ) {}
 
     /**

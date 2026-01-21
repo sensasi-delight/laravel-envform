@@ -8,10 +8,10 @@ use EnvForm\DotEnv;
 use EnvForm\DTO\EnvVar;
 use EnvForm\FormValue;
 use EnvForm\Hint;
+use EnvForm\KeyGenerator;
+use EnvForm\OptionResolver;
 use EnvForm\Registry;
 use EnvForm\ShouldAsk;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Config;
 
 use function Laravel\Prompts\clear;
 use function Laravel\Prompts\confirm;
@@ -27,7 +27,9 @@ final readonly class Service
         private FormValue\Service $formValue,
         private Hint\Service $hint,
         private Registry\Service $registry,
-        private ShouldAsk\Service $shouldAsk
+        private ShouldAsk\Service $shouldAsk,
+        private KeyGenerator\Service $keyGenerator,
+        private OptionResolver\Service $optionResolver,
     ) {}
 
     final public function run(): void
@@ -133,7 +135,9 @@ final readonly class Service
         }
 
         $currentValue = $this->formValue->get($envVar->key)
-            ?? Config::get($envVar->configKeys[0])
+            ?? $this->registry->getStaticValue(
+                $envVar->configKeys->first()
+            )
             ?? $this->dotEnv->getExistingValue($envVar->key);
 
         $defaultValue = $envVar->default;
@@ -192,14 +196,9 @@ final readonly class Service
             return false;
         }
 
-        Artisan::call(
-            command: 'key:generate',
-            parameters: ['--show' => true]
-        );
-
         $this->formValue->set(
             $keyName,
-            trim(Artisan::output())
+            $this->keyGenerator->generate()
         );
 
         return true;
@@ -207,42 +206,29 @@ final readonly class Service
 
     private function handleStrictKeys(EnvVar $ekd): bool
     {
-        $map = [
-            'cache.default' => 'cache.stores',
-            'database.default' => 'database.connections',
-            'filesystem.default' => 'filesystem.disks',
-            'logging.default' => 'logging.channels',
-            'mail.default' => 'mail.mailers',
-            'queue.default' => 'queue.stores',
-            'cache.stores.redis.connection' => 'database.redis',
-            'cache.stores.redis.lock_connection' => 'database.redis',
-        ];
+        $options = $this->optionResolver->resolveOptions($ekd);
 
-        $ref = null;
-
-        foreach ($ekd->configKeys as $configKey) {
-            if (! empty($map[$configKey])) {
-                $ref = $map[$configKey];
-                break;
-            }
-        }
-
-        if (! $ref && preg_match('/^DB_(.*)_CONNECTION$/', $ekd->key)) {
-            $ref = 'database.connections';
-        }
-
-        if (! $ref) {
+        if ($options === null) {
             return false;
+        }
+
+        $additionalOptions = $ekd->configKeys->contains('cache.default') ? ['null'] : [];
+        foreach ($additionalOptions as $opt) {
+            $options[$opt] = $opt;
+        }
+
+        $additionalDefaultOption = null;
+        if ($ekd->configKeys->contains('database.default')) {
+            $additionalDefaultOption = $this->registry->getStaticValue('database.default');
         }
 
         $this->formValue->set(
             $ekd->key,
             $this->buildSelect(
                 label: "🔌 {$ekd->key}",
-                optionsRefConfigKey: $ref,
+                options: $options,
                 envVar: $ekd,
-                additionalOptions: $ekd->configKeys->contains('cache.default') ? ['null'] : [],
-                additionalDefaultOption: $ekd->configKeys->contains('database.default') ? Config::get('database.default') : null
+                additionalDefaultOption: (string) $additionalDefaultOption
             )
         );
 
@@ -250,28 +236,14 @@ final readonly class Service
     }
 
     /**
-     * @param  string[]  $additionalOptions
+     * @param  array<string, string>  $options
      */
     private function buildSelect(
         EnvVar $envVar,
-        string $optionsRefConfigKey,
+        array $options,
         string $label,
-        array $additionalOptions = [],
         ?string $additionalDefaultOption = null
     ): int|string {
-
-        /** @var array<string, string> $availableOptions */
-        $availableOptions = [];
-
-        foreach ([
-            ...array_keys(Config::get(
-                $optionsRefConfigKey
-            )),
-            ...$additionalOptions,
-        ] as $option) {
-            $availableOptions[(string) $option] = (string) $option;
-        }
-
         $defaultValue = $this->formValue->get($envVar->key)
             ?? $this->dotEnv->getExistingValue($envVar->key)
             ?? $envVar->default
@@ -279,10 +251,10 @@ final readonly class Service
 
         return select(
             label: $label,
-            options: $availableOptions,
+            options: $options,
             default: (string) $defaultValue,
             hint: $this->hint->get($envVar->configKeys[0]),
-            scroll: \count($availableOptions)
+            scroll: \count($options)
         );
     }
 

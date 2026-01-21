@@ -22,7 +22,7 @@ final class EnvFormServiceProvider extends ServiceProvider
         // ####### Hints ########
 
         $this->app->bind(
-            Hint\RepositoryContract::class,
+            Hint\Repository::class,
             fn () => new Hint\Repository([
                 __DIR__.'/../../resources',
             ])
@@ -35,19 +35,12 @@ final class EnvFormServiceProvider extends ServiceProvider
         // #### Registry #####
 
         $this->app->singleton(Registry\Service::class);
-
-        $this->app->bind(
-            Registry\RepositoryContract::class,
-            Registry\Repository::class
-        );
+        $this->app->bind(KeyGenerator\Service::class);
+        $this->app->bind(OptionResolver\Service::class);
 
         // #### ShouldAsk #####
 
         $this->app->singleton(ShouldAsk\Service::class);
-        $this->app->bind(
-            ShouldAsk\RepositoryContract::class,
-            ShouldAsk\Repository::class
-        );
     }
 
     final public function boot(): void

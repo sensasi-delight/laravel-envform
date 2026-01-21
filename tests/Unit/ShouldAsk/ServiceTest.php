@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\ShouldAsk;
 
 use EnvForm\FormValue\Service as FormValueService;
-use EnvForm\Registry\RepositoryContract as RegistryRepositoryContract;
+use EnvForm\Registry\Repository as RegistryRepository;
 use EnvForm\Registry\Service as RegistryService;
-use EnvForm\ShouldAsk\RepositoryContract;
+use EnvForm\ShouldAsk\Repository as ShouldAskRepository;
 use EnvForm\ShouldAsk\Service;
 use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
@@ -18,19 +18,19 @@ final class ServiceTest extends TestCase
 
     private RegistryService $registry;
 
-    /** @var RepositoryContract&MockObject */
-    private RepositoryContract $dependencyRepository;
+    /** @var ShouldAskRepository&MockObject */
+    private ShouldAskRepository $dependencyRepository;
 
-    /** @var RegistryRepositoryContract&MockObject */
-    private RegistryRepositoryContract $registryRepository;
+    /** @var RegistryRepository&MockObject */
+    private RegistryRepository $registryRepository;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->formValue = new FormValueService;
-        $this->dependencyRepository = $this->createMock(RepositoryContract::class);
-        $this->registryRepository = $this->createMock(RegistryRepositoryContract::class);
+        $this->dependencyRepository = $this->createMock(ShouldAskRepository::class);
+        $this->registryRepository = $this->createMock(RegistryRepository::class);
     }
 
     public function test_it_always_returns_true_if_no_dependency_rules_match(): void
