@@ -8,9 +8,9 @@ use EnvForm\DotEnv\Formatter;
 use EnvForm\DotEnv\Repository;
 use EnvForm\DotEnv\Service;
 use EnvForm\FormValue\Service as FormValueService;
-use EnvForm\Registry\RepositoryContract;
+use EnvForm\Registry\Repository as RegistryRepository;
 use EnvForm\Registry\Service as RegistryService;
-use EnvForm\ShouldAsk\RepositoryContract as ShouldAskRepositoryContract;
+use EnvForm\ShouldAsk\Repository as ShouldAskRepository;
 use EnvForm\ShouldAsk\Service as ShouldAskService;
 use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -62,8 +62,8 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
-        /** @var RepositoryContract&MockObject $regRepo */
-        $regRepo = $this->createMock(RepositoryContract::class);
+        /** @var RegistryRepository&MockObject $regRepo */
+        $regRepo = $this->createMock(RegistryRepository::class);
         $regRepo->method('scan')->willReturn($findings);
         $regRepo->method('getDependencyMap')->willReturn([
             'cache.stores.redis.*' => 'cache.default',
@@ -80,8 +80,8 @@ final class ServiceTest extends TestCase
         $repo = new Repository;
         $formatter = new Formatter;
 
-        /** @var ShouldAskRepositoryContract&MockObject $depRepo */
-        $depRepo = $this->createMock(ShouldAskRepositoryContract::class);
+        /** @var ShouldAskRepository&MockObject $depRepo */
+        $depRepo = $this->createMock(ShouldAskRepository::class);
         $depRepo->method('getMap')->willReturn([
             'cache.stores.*' => 'cache.default',
         ]);

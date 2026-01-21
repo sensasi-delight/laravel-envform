@@ -27,7 +27,7 @@ final class EnvForm extends Command
     /**
      * @var string
      */
-    protected $signature = 'envform';
+    protected $signature = 'envform {--dry-run}';
 
     /**
      * @var string
@@ -46,6 +46,10 @@ final class EnvForm extends Command
     {
         clear();
         $this->displayWelcome();
+
+        if ($this->option('dry-run')) {
+            note('🧪 DRY RUN MODE: No changes will be written to disk.');
+        }
 
         $envFile = $this->selectEnvFile();
         $this->dotEnv->setTargetFile($envFile);
@@ -97,6 +101,12 @@ final class EnvForm extends Command
 
         if ($this->registry->all()->isEmpty()) {
             warning('⚠️  No values to save.');
+
+            return self::SUCCESS;
+        }
+
+        if ($this->option('dry-run')) {
+            info('✅ Dry run complete. No changes were written.');
 
             return self::SUCCESS;
         }
