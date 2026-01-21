@@ -18,7 +18,7 @@ use Symfony\Component\Finder\SplFileInfo;
  * Static analysis engine that combines AST traversal and Laravel's config structure.
  * Scans PHP files in the config directory to discover env() calls and their dot-notation paths.
  */
-final class Repository extends NodeVisitorAbstract implements RepositoryContract
+class Repository extends NodeVisitorAbstract
 {
     /** @var string[] Current configuration path stack */
     private array $stack = [];
@@ -33,7 +33,7 @@ final class Repository extends NodeVisitorAbstract implements RepositoryContract
      *
      * @return Collection<int, array{envKey: string, configKey: string, defaultValue: mixed, file: string}>
      */
-    final public function scan(): Collection
+    public function scan(): Collection
     {
         $configPath = App::configPath();
 
@@ -142,7 +142,7 @@ final class Repository extends NodeVisitorAbstract implements RepositoryContract
 
     private function parseDefaultValue(Node\Expr $expr): mixed
     {
-        if ($expr instanceof Node\Scalar\String_ || $expr instanceof Node\Scalar\LNumber) {
+        if ($expr instanceof Node\Scalar\String_ || $expr instanceof Node\Scalar\LNumber || $expr instanceof Node\Scalar\DNumber) {
             return $expr->value;
         }
 
@@ -157,13 +157,136 @@ final class Repository extends NodeVisitorAbstract implements RepositoryContract
             };
         }
 
+        if ($expr instanceof Node\Expr\ClassConstFetch && $expr->name instanceof Node\Identifier && $expr->name->toString() === 'class') {
+            if ($expr->class instanceof Node\Name) {
+                return $expr->class->toString();
+            }
+        }
+
+        if ($expr instanceof Node\Expr\FuncCall && $expr->name instanceof Node\Name && $expr->name->toString() === 'env') {
+            $args = $expr->getArgs();
+
+            return isset($args[1]) ? $this->parseDefaultValue($args[1]->value) : null;
+        }
+
         return null;
     }
 
-    final public function getDependencyMap(): array
+    /**
+     * @return array<string, string>
+     */
+    public function getDependencyMap(): array
     {
         $path = __DIR__.'/../../resources/dependencies.php';
 
         return file_exists($path) ? require $path : [];
+    }
+
+    public function getStaticValue(string $file, string $dotPath): mixed
+    {
+        $node = $this->findNodeAtConfigPath($file, $dotPath);
+
+        if ($node instanceof Node\Expr) {
+            return $this->parseDefaultValue($node);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getStaticKeys(string $file, string $dotPath): array
+    {
+        $node = $this->findNodeAtConfigPath($file, $dotPath);
+
+        if (! $node instanceof Node\Expr\Array_) {
+            return [];
+        }
+
+        $keys = [];
+        foreach ($node->items as $item) {
+            if ($item === null) {
+                continue;
+            }
+
+            if ($item->key instanceof Node\Scalar\String_) {
+                $keys[] = $item->key->value;
+            }
+        }
+
+        return $keys;
+    }
+
+    private function findNodeAtConfigPath(string $file, string $dotPath): ?Node
+    {
+        $configPath = App::configPath("{$file}.php");
+
+        if (! file_exists($configPath)) {
+            return null;
+        }
+
+        $parser = (new ParserFactory)->createForNewestSupportedVersion();
+        try {
+            $content = file_get_contents($configPath);
+            if ($content === false) {
+                return null;
+            }
+            $stmts = $parser->parse($content);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if ($stmts === null) {
+            return null;
+        }
+
+        // Find return statement
+        $returnStmt = null;
+        foreach ($stmts as $stmt) {
+            if ($stmt instanceof Node\Stmt\Return_) {
+                $returnStmt = $stmt;
+                break;
+            }
+        }
+
+        if (! $returnStmt || ! $returnStmt->expr instanceof Node\Expr) {
+            return null;
+        }
+
+        $currentExpr = $returnStmt->expr;
+
+        if (empty($dotPath)) {
+            return $currentExpr;
+        }
+
+        $keys = explode('.', $dotPath);
+
+        foreach ($keys as $key) {
+            if (! $currentExpr instanceof Node\Expr\Array_) {
+                return null;
+            }
+
+            $found = false;
+            foreach ($currentExpr->items as $item) {
+                if ($item === null) {
+                    continue;
+                }
+
+                if ($item->key instanceof Node\Scalar\String_ &&
+                    $item->key->value === $key
+                ) {
+                    $currentExpr = $item->value;
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (! $found) {
+                return null;
+            }
+        }
+
+        return $currentExpr;
     }
 }

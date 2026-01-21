@@ -16,7 +16,7 @@ final readonly class Service
      * @throws \Exception
      */
     public function __construct(
-        private readonly RepositoryContract $repository,
+        private readonly Repository $repository,
     ) {
         $rawFindings = $this->repository->scan();
         $dependencyMap = $this->repository->getDependencyMap();
@@ -65,5 +65,32 @@ final readonly class Service
     public function groups(): Collection
     {
         return $this->vars->pluck('group')->unique();
+    }
+
+    public function getStaticValue(string $configKey): mixed
+    {
+        [$file, $path] = $this->parseConfigKey($configKey);
+
+        return $this->repository->getStaticValue($file, $path);
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getStaticKeys(string $configKey): array
+    {
+        [$file, $path] = $this->parseConfigKey($configKey);
+
+        return $this->repository->getStaticKeys($file, $path);
+    }
+
+    /**
+     * @return array{string, string}
+     */
+    private function parseConfigKey(string $key): array
+    {
+        $parts = explode('.', $key, 2);
+
+        return [$parts[0], $parts[1] ?? ''];
     }
 }

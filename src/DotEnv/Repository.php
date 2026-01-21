@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Finder\Finder;
 
-final readonly class Repository
+readonly class Repository
 {
     final public function findDotEnvFiles(string $basePath): Finder
     {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\ShouldAsk;
 
-final class Repository implements RepositoryContract
+class Repository
 {
     /**
      * @var array<string, string>|null
@@ -16,7 +16,7 @@ final class Repository implements RepositoryContract
      *
      * @throws \Exception
      */
-    final public function getMap(): array
+    public function getMap(): array
     {
         if ($this->map === null) {
             $this->map = require __DIR__.'/../../resources/dependencies.php';

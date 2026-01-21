@@ -21,7 +21,7 @@ final class Service
     final public function __construct(
         private FormValue\Service $formValue,
         private Registry\Service $registry,
-        private RepositoryContract $repository
+        private Repository $repository
     ) {
         $this->refresh();
     }
@@ -87,7 +87,11 @@ final class Service
 
                     $triggerEnvVar = $this->registry->find($triggerConfigKey);
 
-                    $activeValue = $triggerEnvVar && $this->formValue->get($triggerEnvVar->key) ?: config($triggerConfigKey);
+                    if (! $triggerEnvVar) {
+                        continue;
+                    }
+
+                    $activeValue = $this->formValue->get($triggerEnvVar->key) ?: $this->registry->getStaticValue($triggerConfigKey);
 
                     break 2;
                 }
