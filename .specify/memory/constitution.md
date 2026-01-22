@@ -1,6 +1,7 @@
 <!--
 SYNC IMPACT REPORT
-- Version change: (None) -> 1.0.0
+- Version change: 1.0.0 -> 1.1.0
+- Added canonical command name requirement for CLI consistency.
 - Refined for precision and enforceability.
 - Clarified Regex usage (supporting signal vs source of truth).
 - Strengthened Idempotency rules (output stability).
@@ -48,6 +49,7 @@ SYNC IMPACT REPORT
     *   **Testability**: MUST be testable via unit tests.
 3.  **UI/Console (Presentation)**:
     *   **Role**: Interaction only.
+    *   **Command Name**: The primary entry point MUST be `php artisan envform`. Colon-separated command names (e.g., `env:form`) are FORBIDDEN to maintain branding consistency.
     *   **Constraint**: Implemented in `EnvForm\Wizard` using `laravel/prompts`.
     *   **Forbidden**: MUST NOT contain domain logic. Delegates immediately to Services.
 
@@ -74,6 +76,6 @@ SYNC IMPACT REPORT
 *   Violations of **Primary Directives** (e.g., adding "smart" inference or HTTP requests) are rejection criteria.
 
 ### Versioning
-*   **Current Version**: 1.0.0
-*   **Ratified**: 2026-01-20
+*   **Current Version**: 1.1.0
+*   **Ratified**: 2026-01-23
 *   **Protocol**: Semantic Versioning. Changes require verification against the core Mission.
