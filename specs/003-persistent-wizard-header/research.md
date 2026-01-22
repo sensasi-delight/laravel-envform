@@ -59,3 +59,18 @@
   4. Truncate if wider than terminal.
   5. Apply Purple Color (ANSI \e[35m etc) if color supported.
   6. Print to STDOUT.
+
+## 5. Retrospective (Post-Implementation)
+
+**What Worked:**
+- **Manual Clear Strategy**: clear() + Header::render() proved stable and visually consistent.
+- **Raw Output**: Using write(STDOUT) for the ASCII art avoided formatting interference from laravel/prompts (which adds margins/boxes to info() or 
+ote()).
+- **Terminal Component**: Symfony\Component\Console\Terminal worked well for width detection.
+
+**What Changed:**
+- **Color Detection**: Terminal->hasColorSupport() can be flaky depending on the exact execution context in Laravel commands. We supplemented it with stream_isatty(STDOUT) and NO_COLOR env check.
+- **Simplification**: We removed the stripAnsi logic from the main render flow by storing the *plain* ASCII art and only adding ANSI codes if color is supported. This is more efficient than stripping. stripAnsi is kept as a public helper for testing.
+
+**Learnings:**
+- **PowerShell Encoding**: Set-Content in PowerShell can mishandle emojis/UTF-8 characters in large heredocs. Using Set-Content -Encoding UTF8 or specific file writing tools is critical for preserving UI assets like emojis.
