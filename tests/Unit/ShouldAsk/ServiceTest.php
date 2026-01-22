@@ -95,6 +95,41 @@ final class ServiceTest extends TestCase
         $this->assertFalse($service->isVisible($var));
     }
 
+    public function test_it_considers_existing_values_when_calculating_visibility(): void
+    {
+        $this->dependencyRepository->method('getMap')->willReturn([
+            'cache.stores.*' => 'cache.default',
+        ]);
+
+        $this->setupRegistryWith([
+            [
+                'envKey' => 'CACHE_DRIVER',
+                'configKey' => 'cache.default',
+            ],
+            [
+                'envKey' => 'REDIS_HOST',
+                'configKey' => 'cache.stores.redis.host',
+            ],
+        ]);
+
+        $service = new Service(
+            $this->formValue,
+            $this->registry,
+            $this->dependencyRepository
+        );
+
+        $var = $this->registry->all()->firstWhere('key', 'REDIS_HOST');
+        $this->assertNotNull($var);
+
+        // Initially hidden (assuming default is not redis)
+        $this->assertFalse($service->isVisible($var));
+
+        // Refresh with existing values from .env
+        $service->refresh(collect(['CACHE_DRIVER' => 'redis']));
+
+        $this->assertTrue($service->isVisible($var));
+    }
+
     /**
      * @param  array<int, array{envKey: string, configKey: string}>  $items
      * @param  array<string, array<string, array<int, string>>>  $depMap
