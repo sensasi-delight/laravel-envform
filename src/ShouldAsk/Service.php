@@ -18,11 +18,15 @@ final class Service
      */
     private Collection $visibleVariables;
 
+    /** @var Collection<string, string> */
+    private Collection $existingValues;
+
     final public function __construct(
         private FormValue\Service $formValue,
         private Registry\Service $registry,
         private Repository $repository
     ) {
+        $this->existingValues = collect();
         $this->refresh();
     }
 
@@ -38,8 +42,15 @@ final class Service
             );
     }
 
-    final public function refresh(): void
+    /**
+     * @param  Collection<string, string>|null  $existingValues
+     */
+    final public function refresh(?Collection $existingValues = null): void
     {
+        if ($existingValues !== null) {
+            $this->existingValues = $existingValues;
+        }
+
         $this->visibleVariables = $this->resolveVisibleVariables();
     }
 
@@ -91,7 +102,9 @@ final class Service
                         continue;
                     }
 
-                    $activeValue = $this->formValue->get($triggerEnvVar->key) ?: $this->registry->getStaticValue($triggerConfigKey);
+                    $activeValue = $this->formValue->get($triggerEnvVar->key)
+                        ?? $this->existingValues->get($triggerEnvVar->key)
+                        ?? $this->registry->getStaticValue($triggerConfigKey);
 
                     break 2;
                 }
