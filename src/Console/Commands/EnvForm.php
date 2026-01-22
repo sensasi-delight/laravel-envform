@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace EnvForm\Console\Commands;
 
+use EnvForm\Console\Components\Header;
 use EnvForm\DotEnv;
 use EnvForm\Registry;
 use EnvForm\Wizard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
 
-use function Laravel\Prompts\clear;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
@@ -44,8 +44,10 @@ final class EnvForm extends Command
 
     final public function handle(): int
     {
-        clear();
-        $this->displayWelcome();
+        Header::render(
+            '💡 LOCAL ANALYSIS: This tool scans your config directory locally and writes directly to your .env file.'.PHP_EOL.
+            '🔒 PRIVACY: No data is sent to external servers. All processing stays on your machine.'
+        );
 
         if ($this->option('dry-run')) {
             note('🧪 DRY RUN MODE: No changes will be written to disk.');
@@ -55,7 +57,7 @@ final class EnvForm extends Command
         $this->dotEnv->setTargetFile($envFile);
 
         if ($this->registry->all()->isEmpty()) {
-            warning('⚠️  No env() calls found in config/*.php. Please check your configuration files.');
+            warning('⚠️ No env() calls found in config/*.php. Please check your configuration files.');
 
             return self::FAILURE;
         }
@@ -88,19 +90,12 @@ final class EnvForm extends Command
         return (string) $choice;
     }
 
-    private function displayWelcome(): void
-    {
-        info('🚀 Welcome to Laravel EnvForm!');
-        note('💡 LOCAL ANALYSIS: This tool scans your config directory locally and writes directly to your .env file.');
-        note('🔒 PRIVACY: No data is sent to external servers. All processing stays on your machine.');
-    }
-
     private function saveChanges(): int
     {
-        clear();
+        Header::render();
 
         if ($this->registry->all()->isEmpty()) {
-            warning('⚠️  No values to save.');
+            warning('⚠️ No values to save.');
 
             return self::SUCCESS;
         }
@@ -112,7 +107,7 @@ final class EnvForm extends Command
         }
 
         while (true) {
-            clear();
+            Header::render();
 
             $filename = text(
                 label: '📄 Enter the output filename',
@@ -126,7 +121,7 @@ final class EnvForm extends Command
             if (
                 file_exists($targetPath) &&
                 ! confirm(
-                    label: "⚠️  File [{$filename}] already exists. Do you want to overwrite it?",
+                    label: "⚠️ File [{$filename}] already exists. Do you want to overwrite it?",
                     default: false
                 )
             ) {

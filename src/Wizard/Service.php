@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace EnvForm\Wizard;
 
+use EnvForm\Console\Components\Header;
 use EnvForm\DotEnv;
 use EnvForm\DTO\EnvVar;
 use EnvForm\DTO\NavigationSession;
@@ -20,7 +21,6 @@ use Laravel\Prompts\Prompt;
 use Laravel\Prompts\SelectPrompt;
 use Laravel\Prompts\TextPrompt;
 
-use function Laravel\Prompts\clear;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
@@ -40,7 +40,7 @@ final class Service
     final public function run(): void
     {
         while (true) {
-            clear();
+            Header::render();
             $this->shouldAsk->refresh($this->dotEnv->getExistingValues());
             $this->showSummaryTable();
 
@@ -154,7 +154,7 @@ final class Service
                     }
 
                     // Stable UI: Clear and re-render everything before showing the next prompt.
-                    clear();
+                    Header::render();
                     $this->showSummaryTable();
 
                     foreach ($session->steps as $sIndex => $sVar) {
@@ -455,7 +455,7 @@ final class Service
                     throw new \EnvForm\Exceptions\BackToMenuException;
                 }
 
-                clear();
+                Header::render();
 
                 throw new FormRevertedException;
             }
