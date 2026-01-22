@@ -6,7 +6,7 @@ namespace EnvForm\KeyGenerator;
 
 use Illuminate\Support\Facades\Artisan;
 
-final readonly class Service
+readonly class Service
 {
     /**
      * Generate a new application key.

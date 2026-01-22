@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\App;
  * Orchestrator for environment file persistence and state merging.
  * Bridges the gap between the discovered registry, form value, and the physical .env file.
  */
-final class Service
+class Service
 {
     private string $targetFile = '.env';
 
-    /** @var Collection<string, string>|null */
+    /** @var Collection<string, string> */
     private ?Collection $existingValues = null;
 
     final public function __construct(
@@ -43,17 +43,45 @@ final class Service
 
     final public function getExistingValue(string $key): ?string
     {
-        if ($this->existingValues === null) {
-            $path = App::basePath($this->targetFile);
-            $this->existingValues = $this->repository->read($path);
-        }
+        $this->ensureLoaded();
 
-        return $this->existingValues->get($key);
+        /** @var Collection<string, string> $existing */
+        $existing = $this->existingValues;
+
+        return $existing->get($key);
+    }
+
+    /**
+     * @return Collection<string, string>
+     */
+    final public function getExistingValues(): Collection
+    {
+        $this->ensureLoaded();
+
+        /** @var Collection<string, string> $existing */
+        $existing = $this->existingValues;
+
+        return $existing;
     }
 
     final public function getCount(): int
     {
-        return $this->existingValues ? $this->existingValues->count() : 0;
+        $this->ensureLoaded();
+
+        /** @var Collection<string, string> $existing */
+        $existing = $this->existingValues;
+
+        return $existing->count();
+    }
+
+    private function ensureLoaded(): void
+    {
+        if ($this->existingValues !== null) {
+            return;
+        }
+
+        $path = App::basePath($this->targetFile);
+        $this->existingValues = $this->repository->read($path);
     }
 
     /**

@@ -206,10 +206,6 @@ class Repository extends NodeVisitorAbstract
 
         $keys = [];
         foreach ($node->items as $item) {
-            if ($item === null) {
-                continue;
-            }
-
             if ($item->key instanceof Node\Scalar\String_) {
                 $keys[] = $item->key->value;
             }
@@ -269,10 +265,6 @@ class Repository extends NodeVisitorAbstract
 
             $found = false;
             foreach ($currentExpr->items as $item) {
-                if ($item === null) {
-                    continue;
-                }
-
                 if ($item->key instanceof Node\Scalar\String_ &&
                     $item->key->value === $key
                 ) {

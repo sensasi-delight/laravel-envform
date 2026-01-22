@@ -6,36 +6,42 @@ namespace EnvForm\Wizard;
 
 use EnvForm\DotEnv;
 use EnvForm\DTO\EnvVar;
+use EnvForm\DTO\NavigationSession;
 use EnvForm\FormValue;
 use EnvForm\Hint;
 use EnvForm\KeyGenerator;
 use EnvForm\OptionResolver;
 use EnvForm\Registry;
 use EnvForm\ShouldAsk;
+use Laravel\Prompts\ConfirmPrompt;
+use Laravel\Prompts\Exceptions\FormRevertedException;
+use Laravel\Prompts\Key;
+use Laravel\Prompts\Prompt;
+use Laravel\Prompts\SelectPrompt;
+use Laravel\Prompts\TextPrompt;
 
 use function Laravel\Prompts\clear;
-use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
-use function Laravel\Prompts\text;
 
-final readonly class Service
+final class Service
 {
     final public function __construct(
-        private DotEnv\Service $dotEnv,
-        private FormValue\Service $formValue,
-        private Hint\Service $hint,
-        private Registry\Service $registry,
-        private ShouldAsk\Service $shouldAsk,
-        private KeyGenerator\Service $keyGenerator,
-        private OptionResolver\Service $optionResolver,
+        private readonly DotEnv\Service $dotEnv,
+        private readonly FormValue\Service $formValue,
+        private readonly Hint\Service $hint,
+        private readonly Registry\Service $registry,
+        private readonly ShouldAsk\Service $shouldAsk,
+        private readonly KeyGenerator\Service $keyGenerator,
+        private readonly OptionResolver\Service $optionResolver,
     ) {}
 
     final public function run(): void
     {
         while (true) {
             clear();
+            $this->shouldAsk->refresh($this->dotEnv->getExistingValues());
             $this->showSummaryTable();
 
             $menuOptions = $this->buildMenuOptions();
@@ -105,44 +111,138 @@ final readonly class Service
 
     private function configureGroup(string $groupName): void
     {
-        info("🛠️  Configuring settings for: {$groupName}");
+        $vars = $this->registry->all()
+            ->filter(fn (EnvVar $v) => $v->group === $groupName)
+            ->values();
 
-        $triggerEnvVars = $this->shouldAsk->getVisibleVariablesByGroup($groupName)
-            ->filter(fn (EnvVar $v) => $v->isTrigger);
+        if ($vars->isEmpty()) {
+            info("✅ No variables found for: {$groupName}");
 
-        foreach ($triggerEnvVars as $envVar) {
-            $this->askForValue($envVar);
-        }
-
-        $this->shouldAsk->refresh();
-
-        $nonTriggerEnvVars = $this->shouldAsk
-            ->getVisibleVariablesByGroup($groupName)
-            ->filter(fn (EnvVar $v) => ! $v->isTrigger);
-
-        foreach ($nonTriggerEnvVars as $envVar) {
-            $this->askForValue($envVar);
-        }
-    }
-
-    private function askForValue(EnvVar $envVar): void
-    {
-        if (
-            $this->handleAppKey($envVar->key) ||
-            $this->handleStrictKeys($envVar)
-        ) {
             return;
         }
 
+        $session = new NavigationSession($vars);
+
+        $this->runFormLoop($session);
+
+        $this->shouldAsk->refresh($this->dotEnv->getExistingValues());
+
+        info("✨ Configuration for {$groupName} completed.");
+    }
+
+    private function runFormLoop(NavigationSession $session): void
+    {
+        $form = \Laravel\Prompts\form();
+
+        foreach ($session->steps as $index => $envVar) {
+            $form->addIf(
+                function (array $responses) use ($envVar, $session, $index): bool {
+                    // Sync previous responses to FormValue so ShouldAsk has latest state
+                    foreach ($session->steps as $sIndex => $sVar) {
+                        if ($sIndex >= $index) {
+                            break;
+                        }
+                        if (isset($responses[$sVar->key])) {
+                            $this->formValue->set($sVar->key, $responses[$sVar->key]);
+                        }
+                    }
+
+                    $this->shouldAsk->refresh($this->dotEnv->getExistingValues());
+
+                    if (! $this->shouldAsk->isVisible($envVar)) {
+                        return false;
+                    }
+
+                    // Stable UI: Clear and re-render everything before showing the next prompt.
+                    clear();
+                    $this->showSummaryTable();
+
+                    foreach ($session->steps as $sIndex => $sVar) {
+                        if ($sIndex >= $index) {
+                            break;
+                        }
+
+                        $key = $sVar->key;
+                        if (isset($responses[$key]) && $this->shouldAsk->isVisible($sVar)) {
+                            $val = $responses[$key];
+                            $prefix = $sVar->isTrigger ? '🚀' : '⚙️';
+                            $progress = $this->getVisibleProgressLabel($sVar);
+                            info("{$prefix} {$progress} {$key}: ".(\is_bool($val) ? ($val ? 'true' : 'false') : (string) $val));
+                        }
+                    }
+
+                    return true;
+                },
+                function () use ($envVar, $session, $index) {
+                    $session->currentIndex = $index;
+
+                    return $this->renderStep($envVar, $session);
+                },
+                name: $envVar->key
+            );
+        }
+
+        try {
+            $form->submit();
+        } catch (\EnvForm\Exceptions\BackToMenuException) {
+            // Exit loop and return to menu selection
+        }
+    }
+
+    private function renderStep(EnvVar $envVar, NavigationSession $session): mixed
+    {
+        try {
+            $result = $this->askForValue($envVar, $session);
+
+            // Sync current step result immediately
+            if ($result !== null) {
+                if ($envVar->isTrigger) {
+                    $oldValue = $this->formValue->get($envVar->key) ?? $this->dotEnv->getExistingValue($envVar->key);
+
+                    if ($oldValue != $result) {
+                        $this->formValue->set($envVar->key, $result);
+                        $this->shouldAsk->refresh($this->dotEnv->getExistingValues());
+                        info("🔄 Visibility updated based on your choice for {$envVar->key}");
+
+                        return $result;
+                    }
+                }
+
+                $this->formValue->set($envVar->key, $result);
+            }
+
+            return $result;
+        } catch (FormRevertedException $e) {
+            throw $e;
+        }
+    }
+
+    private function askForValue(EnvVar $envVar, NavigationSession $session): mixed
+    {
+        if ($keyVal = $this->handleAppKey($envVar, $session)) {
+            return $keyVal;
+        }
+
+        if ($strictVal = $this->handleStrictKeys($envVar, $session)) {
+            return $strictVal;
+        }
+
+        $configKey = $envVar->configKeys->first();
         $currentValue = $this->formValue->get($envVar->key)
-            ?? $this->registry->getStaticValue(
-                $envVar->configKeys->first()
-            )
+            ?? ($configKey ? $this->registry->getStaticValue($configKey) : null)
             ?? $this->dotEnv->getExistingValue($envVar->key);
 
         $defaultValue = $envVar->default;
 
-        $label = "👉 {$envVar->key}";
+        $prefix = $envVar->isTrigger ? '🚀 ' : '⚙️ ';
+        $progress = $this->getVisibleProgressLabel($envVar);
+
+        $navigationLabel = '';
+        if ($session->hasPrevious() && PHP_OS_FAMILY !== 'Windows') {
+            $navigationLabel = " \e[2m(Ctrl+C: Back)\e[22m";
+        }
+
+        $label = "{$prefix} {$progress} {$envVar->key}{$navigationLabel}";
         $hint = $this->hint->get($envVar->configKeys[0]);
 
         if ($defaultValue !== null) {
@@ -158,53 +258,72 @@ final readonly class Service
                 $boolInitial = strtolower($initial) === 'true';
             }
 
-            $this->formValue->set(
-                $envVar->key,
-                confirm(
+            $res = $this->runPromptWithBackSupport(
+                new ConfirmPrompt(
                     label: $label,
                     default: (bool) $boolInitial,
                     hint: $hint
-                )
+                ),
+                $session,
+                $envVar
             );
 
-            return;
+            $this->formValue->set($envVar->key, $res);
+            $this->shouldAsk->refresh($this->dotEnv->getExistingValues());
+
+            return $res;
         }
 
-        $this->formValue->set(
-            $envVar->key,
-            text(
+        $res = $this->runPromptWithBackSupport(
+            new TextPrompt(
                 label: $label,
                 default: (string) $initial,
                 hint: $hint
-            )
+            ),
+            $session,
+            $envVar
         );
+
+        $this->formValue->set($envVar->key, $res);
+        $this->shouldAsk->refresh($this->dotEnv->getExistingValues());
+
+        return $res;
     }
 
-    private function handleAppKey(string $keyName): bool
+    private function handleAppKey(EnvVar $envVar, NavigationSession $session): mixed
     {
-        if ($keyName !== 'APP_KEY') {
+        if ($envVar->key !== 'APP_KEY') {
             return false;
         }
 
-        $currentValue = $this->formValue->get($keyName)
-            ?? $this->dotEnv->getExistingValue($keyName);
+        $currentValue = $this->formValue->get($envVar->key)
+            ?? $this->dotEnv->getExistingValue($envVar->key);
 
-        if (! confirm(
-            label: '🔑 Do you want to generate/regenerate APP_KEY?',
-            default: empty($currentValue)
-        )) {
-            return false;
+        $prefix = '🚀 ';
+        $progress = $this->getVisibleProgressLabel($envVar);
+
+        $navigationLabel = '';
+        if ($session->hasPrevious() && PHP_OS_FAMILY !== 'Windows') {
+            $navigationLabel = " \e[2m(Ctrl+C: Back)\e[22m";
         }
 
-        $this->formValue->set(
-            $keyName,
-            $this->keyGenerator->generate()
+        $answer = $this->runPromptWithBackSupport(
+            new ConfirmPrompt(
+                label: "{$prefix} {$progress} Do you want to generate/regenerate APP_KEY?{$navigationLabel}",
+                default: empty($currentValue)
+            ),
+            $session,
+            $envVar
         );
 
-        return true;
+        if (! $answer) {
+            return $currentValue;
+        }
+
+        return $this->keyGenerator->generate();
     }
 
-    private function handleStrictKeys(EnvVar $ekd): bool
+    private function handleStrictKeys(EnvVar $ekd, NavigationSession $session): mixed
     {
         $options = $this->optionResolver->resolveOptions($ekd);
 
@@ -222,40 +341,129 @@ final readonly class Service
             $additionalDefaultOption = $this->registry->getStaticValue('database.default');
         }
 
-        $this->formValue->set(
-            $ekd->key,
-            $this->buildSelect(
-                label: "🔌 {$ekd->key}",
-                options: $options,
-                envVar: $ekd,
-                additionalDefaultOption: (string) $additionalDefaultOption
-            )
-        );
+        $prefix = $ekd->isTrigger ? '🚀 ' : '⚙️ ';
+        $progress = $this->getVisibleProgressLabel($ekd);
 
-        return true;
+        $navigationLabel = '';
+        if ($session->hasPrevious() && PHP_OS_FAMILY !== 'Windows') {
+            $navigationLabel = " \e[2m(Ctrl+C: Back)\e[22m";
+        }
+
+        return $this->buildSelect(
+            label: "{$prefix} {$progress} {$ekd->key}{$navigationLabel}",
+            options: $options,
+            envVar: $ekd,
+            additionalDefaultOption: (string) $additionalDefaultOption,
+            session: $session
+        );
+    }
+
+    private function hasVisiblePrevious(EnvVar $currentVar): bool
+    {
+        $visibleVars = $this->shouldAsk->getVisibleVariablesByGroup($currentVar->group);
+
+        if ($visibleVars->isEmpty()) {
+            return false;
+        }
+
+        return $visibleVars->first()->key !== $currentVar->key;
+    }
+
+    private function getVisibleProgressLabel(EnvVar $currentVar): string
+    {
+
+        $visibleVars = $this->shouldAsk->getVisibleVariablesByGroup($currentVar->group)->values();
+
+        $index = $visibleVars->search(fn ($v) => $v->key === $currentVar->key);
+
+        if ($index === false) {
+
+            return '';
+
+        }
+
+        $current = (int) $index + 1;
+
+        $total = $visibleVars->count();
+
+        return "[{$current}/{$total}]";
+
     }
 
     /**
      * @param  array<string, string>  $options
      */
     private function buildSelect(
+
         EnvVar $envVar,
+
         array $options,
+
         string $label,
-        ?string $additionalDefaultOption = null
-    ): int|string {
+
+        ?string $additionalDefaultOption = null,
+
+        ?NavigationSession $session = null
+
+    ): mixed {
+
         $defaultValue = $this->formValue->get($envVar->key)
+
             ?? $this->dotEnv->getExistingValue($envVar->key)
+
             ?? $envVar->default
+
             ?? $additionalDefaultOption;
 
-        return select(
-            label: $label,
-            options: $options,
-            default: (string) $defaultValue,
-            hint: $this->hint->get($envVar->configKeys[0]),
-            scroll: \count($options)
+        $hint = $this->hint->get($envVar->configKeys[0]);
+
+        return $this->runPromptWithBackSupport(
+
+            new SelectPrompt(
+
+                label: $label,
+
+                options: $options,
+
+                default: (string) $defaultValue,
+
+                hint: $hint,
+
+                scroll: \count($options)
+
+            ),
+
+            $session,
+
+            $envVar
+
         );
+
+    }
+
+    private function runPromptWithBackSupport(Prompt $prompt, ?NavigationSession $session, EnvVar $envVar): mixed
+    {
+
+        $prompt->on('key', function (string $key) use ($envVar) {
+
+            if ($key === Key::CTRL_C) {
+
+                // If there are no visible variables before this one in the group, return to menu
+
+                if (! $this->hasVisiblePrevious($envVar)) {
+
+                    throw new \EnvForm\Exceptions\BackToMenuException;
+                }
+
+                clear();
+
+                throw new FormRevertedException;
+            }
+
+        });
+
+        return $prompt->prompt();
+
     }
 
     private function showSummaryTable(): void
