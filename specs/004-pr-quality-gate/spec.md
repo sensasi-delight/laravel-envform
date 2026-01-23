@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-pr-quality-gate`  
 **Created**: 2026-01-23  
-**Status**: Draft  
+**Status**: Completed  
 **Input**: User description: "004 create a standardized github action that automatically runs on every pull request targeting the main branch to act as a mandatory quality gate before merging. the goal is to ensure that no change reaches main without consistent validation, reducing the risk of regressions and broken releases caused by human oversight or inconsistent local checks. this workflow must verify that the project remains healthy by enforcing essential quality signals such as test execution, basic static checks, and successful build verification, and it must be configured as a required check for merging. the reason for this is to protect branch stability, establish a single source of truth for validation, and make quality enforcement systematic rather than optional or dependent on individual discipline."
 
 ## Clarifications

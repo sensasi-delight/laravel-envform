@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-guided-tui-flow`  
 **Created**: 2026-01-22  
-**Status**: Draft  
+**Status**: Completed  
 **Input**: User description: "improve the existing tui flow by focusing on user clarity, error recovery, and confidence rather than adding new features. the goal is to make env value entry feel guided, reversible, and predictable so users never feel trapped or afraid of making a mistake. redesign the flow so each step clearly communicates what is being asked, why it matters, and what will happen next, while keeping the interaction linear and calm. introduce an explicit mechanism to go back to the previous question when filling an env key value, allowing users to revise earlier answers without restarting the wizard or corrupting state. ensure the flow maintains a single authoritative state that can be replayed deterministically. in parallel, define comprehensive tests that validate the tui behavior end to end, including forward navigation, backward navigation, cancellation, repeated runs, and idempotent outcomes, so the tui is treated as a first-class, testable interaction flow rather than incidental glue code."
 
 ## Clarifications
