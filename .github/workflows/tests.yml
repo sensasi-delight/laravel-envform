@@ -49,25 +49,5 @@ jobs:
         run: vendor/bin/phpstan analyse --no-progress
 
       - name: 🧪 Run Tests
-        run: vendor/bin/phpunit --coverage-text | tee coverage.txt
+        run: vendor/bin/phpunit --coverage-text
 
-      - name: 📊 Report Coverage
-        if: always()
-        run: |
-          if [ -f coverage.txt ]; then
-            echo "Displaying coverage in logs:"
-            cat coverage.txt
-            echo "### 📊 Code Coverage Summary (PHP ${{ matrix.php }})" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```text' >> $GITHUB_STEP_SUMMARY
-            # Check if "Summary:" exists, otherwise take the whole file
-            if grep -q "Summary:" coverage.txt; then
-              sed -n '/Summary:/,$p' coverage.txt >> $GITHUB_STEP_SUMMARY
-            else
-              cat coverage.txt >> $GITHUB_STEP_SUMMARY
-            fi
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          else
-            echo "::warning::Coverage file not found. Ensure pcov is working."
-            echo "Coverage report not found." >> $GITHUB_STEP_SUMMARY
-          fi
