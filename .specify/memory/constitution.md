@@ -57,7 +57,7 @@ SYNC IMPACT REPORT
 
 ### Stack Definition
 *   **PHP**: 8.2+
-*   **Framework**: Laravel 12+
+*   **Framework**: Laravel 11+
 *   **AST Parser**: `nikic/php-parser` ^5.0
 
 ### Quality Mandates

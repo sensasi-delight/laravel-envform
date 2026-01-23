@@ -11,7 +11,7 @@ Implement a robust GitHub Actions workflow that acts as a mandatory quality gate
 
 **Language/Version**: PHP 8.2, 8.3, 8.4 (Matrix)
 **Primary Dependencies**: shivammathur/setup-php (GitHub Action), composer
-**Testing**: PHPUnit 12.5+
+**Testing**: PHPUnit 11+
 **Target Platform**: GitHub Actions CI
 **Project Type**: Laravel Development Package (Library)
 **Quality Standards**: Pint (check-only), PHPStan Level 8, PHPUnit with Coverage (pcov)
