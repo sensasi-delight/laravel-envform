@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Hint;
 
 use EnvForm\Hint\Repository;
-use Illuminate\Support\Facades\File;
-use Tests\TestCase;
+use PHPUnit\Framework\TestCase;
 
 final class RepositoryTest extends TestCase
 {
@@ -16,13 +15,31 @@ final class RepositoryTest extends TestCase
     {
         parent::setUp();
         $this->tempPath = __DIR__.'/temp_hints';
-        File::makeDirectory($this->tempPath, 0755, true, true);
+        if (! is_dir($this->tempPath)) {
+            mkdir($this->tempPath, 0755, true);
+        }
     }
 
     protected function tearDown(): void
     {
-        File::deleteDirectory($this->tempPath);
+        if (is_dir($this->tempPath)) {
+            $this->deleteDirectory($this->tempPath);
+        }
         parent::tearDown();
+    }
+
+    private function deleteDirectory(string $path): void
+    {
+        if (! is_dir($path)) {
+            return;
+        }
+
+        $files = array_diff(scandir($path) ?: [], ['.', '..']);
+        foreach ($files as $file) {
+            $filePath = $path.'/'.$file;
+            is_dir($filePath) ? $this->deleteDirectory($filePath) : unlink($filePath);
+        }
+        rmdir($path);
     }
 
     public function test_it_returns_hint_from_file(): void
@@ -33,7 +50,7 @@ return [
     'app.name' => 'The application name',
 ];
 PHP;
-        File::put($this->tempPath.'/hints.php', $content);
+        file_put_contents($this->tempPath.'/hints.php', $content);
 
         $repo = new Repository([$this->tempPath]);
 
@@ -42,7 +59,7 @@ PHP;
 
     public function test_it_returns_empty_string_if_key_not_found(): void
     {
-        File::put($this->tempPath.'/hints.php', '<?php return [];');
+        file_put_contents($this->tempPath.'/hints.php', '<?php return [];');
         $repo = new Repository([$this->tempPath]);
 
         $this->assertEquals('', $repo->get('missing.key'));

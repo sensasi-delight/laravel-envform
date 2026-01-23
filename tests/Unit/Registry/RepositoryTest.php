@@ -87,7 +87,7 @@ PHP;
         $repository = new Repository;
         $results = $repository->scan();
 
-        $this->assertEmpty($results);
+        $this->assertCount(0, $results);
     }
 
     public function test_scan_handles_array_item_without_keys(): void

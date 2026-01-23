@@ -6,7 +6,7 @@ namespace Tests\Unit\Registry;
 
 use EnvForm\Registry\Repository;
 use EnvForm\Registry\Service;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use Tests\TestCase;
 
 final class ServiceTest extends TestCase
@@ -28,8 +28,8 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
-        /** @var Repository&MockObject $repo */
-        $repo = $this->createMock(Repository::class);
+        /** @var Repository&Stub $repo */
+        $repo = $this->createStub(Repository::class);
         $repo->method('scan')->willReturn($findings);
         $repo->method('getDependencyMap')->willReturn([
             'cache.stores.redis.*' => 'cache.default',
@@ -68,8 +68,8 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
-        /** @var Repository&MockObject $repo */
-        $repo = $this->createMock(Repository::class);
+        /** @var Repository&Stub $repo */
+        $repo = $this->createStub(Repository::class);
         $repo->method('scan')->willReturn($findings);
         $repo->method('getDependencyMap')->willReturn([
             'cache.stores.redis.*' => 'cache.default',

@@ -1,11 +1,8 @@
 <!--
 SYNC IMPACT REPORT
-- Version change: 1.0.0 -> 1.1.0
-- Added canonical command name requirement for CLI consistency.
-- Refined for precision and enforceability.
-- Clarified Regex usage (supporting signal vs source of truth).
-- Strengthened Idempotency rules (output stability).
-- Explicitly defined non-goals (no AI/inference).
+- Version change: 1.1.0 -> 1.1.1
+- Updated Laravel and PHPUnit version requirements to match project reality.
+- Added GitHub Actions badge to README.
 -->
 
 # Laravel EnvForm Constitution
@@ -49,7 +46,7 @@ SYNC IMPACT REPORT
     *   **Testability**: MUST be testable via unit tests.
 3.  **UI/Console (Presentation)**:
     *   **Role**: Interaction only.
-    *   **Command Name**: The primary entry point MUST be `php artisan envform`. Colon-separated command names (e.g., `env:form`) are FORBIDDEN to maintain branding consistency.
+    *   **Command Name**: The primary entry point MUST be `envform`. Colon-separated command names (e.g., `env:form`) are FORBIDDEN to maintain branding consistency.
     *   **Constraint**: Implemented in `EnvForm\Wizard` using `laravel/prompts`.
     *   **Forbidden**: MUST NOT contain domain logic. Delegates immediately to Services.
 
@@ -57,7 +54,7 @@ SYNC IMPACT REPORT
 
 ### Stack Definition
 *   **PHP**: 8.2+
-*   **Framework**: Laravel 12+
+*   **Framework**: Laravel 11+ / 12+
 *   **AST Parser**: `nikic/php-parser` ^5.0
 
 ### Quality Mandates
@@ -65,7 +62,7 @@ SYNC IMPACT REPORT
 *   **Static Analysis**: Code MUST pass PHPStan at **Level 8** (High Strictness).
 *   **Style**: Code MUST adhere to **Laravel Pint** standards.
 *   **Testing**:
-    *   Use **PHPUnit 12+**.
+    *   Use **PHPUnit 11+ / 12+**.
     *   Test **Behavior** (Public Methods), not implementation details.
     *   Do not mock what you do not own (except strictly defined Repositories).
 
@@ -76,6 +73,6 @@ SYNC IMPACT REPORT
 *   Violations of **Primary Directives** (e.g., adding "smart" inference or HTTP requests) are rejection criteria.
 
 ### Versioning
-*   **Current Version**: 1.1.0
+*   **Current Version**: 1.1.1
 *   **Ratified**: 2026-01-23
 *   **Protocol**: Semantic Versioning. Changes require verification against the core Mission.

@@ -13,7 +13,7 @@ use EnvForm\Registry\Service as RegistryService;
 use EnvForm\ShouldAsk\Repository as ShouldAskRepository;
 use EnvForm\ShouldAsk\Service as ShouldAskService;
 use Illuminate\Support\Facades\File;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use Tests\TestCase;
 
 final class ServiceTest extends TestCase
@@ -62,8 +62,8 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
-        /** @var RegistryRepository&MockObject $regRepo */
-        $regRepo = $this->createMock(RegistryRepository::class);
+        /** @var RegistryRepository&Stub $regRepo */
+        $regRepo = $this->createStub(RegistryRepository::class);
         $regRepo->method('scan')->willReturn($findings);
         $regRepo->method('getDependencyMap')->willReturn([
             'cache.stores.redis.*' => 'cache.default',
@@ -80,8 +80,8 @@ final class ServiceTest extends TestCase
         $repo = new Repository;
         $formatter = new Formatter;
 
-        /** @var ShouldAskRepository&MockObject $depRepo */
-        $depRepo = $this->createMock(ShouldAskRepository::class);
+        /** @var ShouldAskRepository&Stub $depRepo */
+        $depRepo = $this->createStub(ShouldAskRepository::class);
         $depRepo->method('getMap')->willReturn([
             'cache.stores.*' => 'cache.default',
         ]);

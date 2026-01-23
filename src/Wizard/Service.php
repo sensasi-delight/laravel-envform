@@ -194,21 +194,18 @@ final class Service
         try {
             $result = $this->askForValue($envVar, $session);
 
-            // Sync current step result immediately
+            // Sync current step result immediately to FormValue
             if ($result !== null) {
+                $this->formValue->set($envVar->key, $result);
+
                 if ($envVar->isTrigger) {
-                    $oldValue = $this->formValue->get($envVar->key) ?? $this->dotEnv->getExistingValue($envVar->key);
+                    $oldValue = $this->dotEnv->getExistingValue($envVar->key);
 
                     if ($oldValue != $result) {
-                        $this->formValue->set($envVar->key, $result);
                         $this->shouldAsk->refresh($this->dotEnv->getExistingValues());
                         info("🔄 Visibility updated based on your choice for {$envVar->key}");
-
-                        return $result;
                     }
                 }
-
-                $this->formValue->set($envVar->key, $result);
             }
 
             return $result;

@@ -6,7 +6,7 @@ namespace Tests\Unit\DTO;
 
 use EnvForm\DTO\EnvVar;
 use EnvForm\DTO\NavigationSession;
-use Tests\TestCase;
+use PHPUnit\Framework\TestCase;
 
 final class NavigationSessionTest extends TestCase
 {
