@@ -31,7 +31,7 @@
 ### Key Entities
 
 - **ValueResolver\Service**: The "Brain" for value resolution. Consumes `Registry\Service`, `FormValue\Service`, and `DotEnv\Service`. Provides a `resolve(string $configPath)` method that applies the priority logic globally.
-- **DerivationRepository**: Loads and provides access to rules defined in `resources/derivations.php`.
+- **ValueResolver\Repository**: Loads and provides access to rules defined in `resources/derivations.php`.
 
 
 ### Data Model: `resources/derivations.php`

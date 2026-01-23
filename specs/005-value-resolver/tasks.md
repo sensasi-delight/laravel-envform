@@ -91,7 +91,7 @@
 ### Implementation for User Story 4
 
 - [ ] T017 [US4] Update `Wizard\Service` to inject `ValueResolver\Service` and use it in `askForValue()` and `handleAppKey()` in `src/Wizard/Service.php`
-- [ ] T018 [US4] Refactor `Wizard\Service` to remove redundant value lookup logic across its private methods
+- [ ] T018 [US4] Refactor `Wizard\Service` to remove redundant value lookup logic (Registry defaults, DotEnv, FormValue) across its private methods
 - [ ] T019 [US4] Update `EnvFormServiceProvider.php` to ensure correct dependency injection for updated `Wizard\Service`
 
 **Checkpoint**: All user stories are now integrated and the system is using the centralized resolver.
