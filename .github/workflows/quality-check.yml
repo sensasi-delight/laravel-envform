@@ -29,6 +29,7 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, pcov
           coverage: pcov
+          ini-values: pcov.enabled=1, pcov.directory=src
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -48,12 +49,14 @@ jobs:
         run: vendor/bin/phpstan analyse --no-progress
 
       - name: Run Tests
-        run: vendor/bin/phpunit --coverage-text > coverage.txt && cat coverage.txt
+        run: vendor/bin/phpunit --coverage-text | tee coverage.txt
 
       - name: Report Coverage
         if: always()
         run: |
-          echo "### Code Coverage Report" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat coverage.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage.txt ]; then
+            echo "### Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -A 10 "Summary:" coverage.txt >> $GITHUB_STEP_SUMMARY || cat coverage.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi

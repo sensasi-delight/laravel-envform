@@ -54,7 +54,7 @@ class TuiNavigationTest extends TestCase
             new DotEnv\Formatter
         );
 
-        $keyGen = $this->createMock(KeyGenerator\Service::class);
+        $keyGen = $this->createStub(KeyGenerator\Service::class);
         $keyGen->method('generate')->willReturn('base64:new-key-mocked');
 
         $optionResolver = new OptionResolver\Service($registry);

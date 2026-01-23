@@ -9,7 +9,7 @@ use EnvForm\Registry\Repository as RegistryRepository;
 use EnvForm\Registry\Service as RegistryService;
 use EnvForm\ShouldAsk\Repository as ShouldAskRepository;
 use EnvForm\ShouldAsk\Service;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use Tests\TestCase;
 
 final class ServiceTest extends TestCase
@@ -18,10 +18,10 @@ final class ServiceTest extends TestCase
 
     private RegistryService $registry;
 
-    /** @var ShouldAskRepository&MockObject */
+    /** @var ShouldAskRepository&Stub */
     private ShouldAskRepository $dependencyRepository;
 
-    /** @var RegistryRepository&MockObject */
+    /** @var RegistryRepository&Stub */
     private RegistryRepository $registryRepository;
 
     protected function setUp(): void
@@ -29,8 +29,8 @@ final class ServiceTest extends TestCase
         parent::setUp();
 
         $this->formValue = new FormValueService;
-        $this->dependencyRepository = $this->createMock(ShouldAskRepository::class);
-        $this->registryRepository = $this->createMock(RegistryRepository::class);
+        $this->dependencyRepository = $this->createStub(ShouldAskRepository::class);
+        $this->registryRepository = $this->createStub(RegistryRepository::class);
     }
 
     public function test_it_always_returns_true_if_no_dependency_rules_match(): void
