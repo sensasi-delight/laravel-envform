@@ -48,7 +48,8 @@ class Repository extends NodeVisitorAbstract
         $files = Finder::create()
             ->files()
             ->in($configPath)
-            ->name('*.php');
+            ->name('*.php')
+            ->sortByName();
 
         $parser = (new ParserFactory)->createForNewestSupportedVersion();
         $this->foundItems = new Collection;
