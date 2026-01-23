@@ -1,6 +1,6 @@
 # 🧙‍♂️ Laravel EnvForm
 
-![Tests](https://github.com/sensasi-delight/laravel-envform/workflows/tests/badge.svg)
+![Tests](https://github.com/sensasi-delight/laravel-envform/actions/workflows/tests.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.2-777bb4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E11%20%7C%20%5E12-ff2d20.svg)
