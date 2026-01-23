@@ -16,8 +16,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [x] T001 Create workflow directory and skeleton file in `.github/workflows/quality-check.yml`
-- [x] T002 Configure basic workflow triggers and permissions in `.github/workflows/quality-check.yml`
+- [x] T001 Create workflow directory and skeleton file in `.github/workflows/tests.yml`
+- [x] T002 Configure basic workflow triggers and permissions in `.github/workflows/tests.yml`
 
 ---
 
@@ -27,9 +27,9 @@
 
 **⚠️ CRITICAL**: The matrix and environment setup must be defined before implementing quality checks.
 
-- [x] T003 Define strategy matrix for PHP (8.2, 8.3, 8.4) and stability (lowest, stable) in `.github/workflows/quality-check.yml`
-- [x] T004 Implement `shivammathur/setup-php` step with required extensions (pcov, mbstring) in `.github/workflows/quality-check.yml`
-- [x] T005 Configure Composer caching and dependency installation logic in `.github/workflows/quality-check.yml`
+- [x] T003 Define strategy matrix for PHP (8.2, 8.3, 8.4) and stability (lowest, stable) in `.github/workflows/tests.yml`
+- [x] T004 Implement `shivammathur/setup-php` step with required extensions (pcov, mbstring) in `.github/workflows/tests.yml`
+- [x] T005 Configure Composer caching and dependency installation logic in `.github/workflows/tests.yml`
 
 **Checkpoint**: Foundation ready - the CI environment can now execute PHP commands.
 
@@ -43,10 +43,10 @@
 
 ### Implementation for User Story 1
 
-- [x] T006 [US1] Implement Pint coding standard check (check-only mode) in `.github/workflows/quality-check.yml`
-- [x] T007 [US1] Implement PHPStan static analysis (Level 8) in `.github/workflows/quality-check.yml`
-- [x] T008 [US1] Implement PHPUnit test execution step in `.github/workflows/quality-check.yml`
-- [x] T009 [US1] Ensure workflow fails if any quality check fails in `.github/workflows/quality-check.yml`
+- [x] T006 [US1] Implement Pint coding standard check (check-only mode) in `.github/workflows/tests.yml`
+- [x] T007 [US1] Implement PHPStan static analysis (Level 8) in `.github/workflows/tests.yml`
+- [x] T008 [US1] Implement PHPUnit test execution step in `.github/workflows/tests.yml`
+- [x] T009 [US1] Ensure workflow fails if any quality check fails in `.github/workflows/tests.yml`
 
 **Checkpoint**: User Story 1 is functional. PRs are now validated against quality gates.
 
@@ -60,8 +60,8 @@
 
 ### Implementation for User Story 2
 
-- [x] T010 [US2] Implement matrix stability logic (uses 'composer update' for prefer-lowest) in .github/workflows/quality-check.yml
-- [x] T011 [US2] Optimize standard build performance using 'composer install --prefer-dist --no-progress' for stable dependencies in .github/workflows/quality-check.yml
+- [x] T010 [US2] Implement matrix stability logic (uses 'composer update' for prefer-lowest) in .github/workflows/tests.yml
+- [x] T011 [US2] Optimize standard build performance using 'composer install --prefer-dist --no-progress' for stable dependencies in .github/workflows/tests.yml
 
 **Checkpoint**: Build integrity is explicitly verified across the matrix.
 
@@ -71,8 +71,8 @@
 
 **Purpose**: Improvements to visibility and developer experience.
 
-- [x] T012 Implement code coverage reporting to GITHUB_STEP_SUMMARY using pcov in .github/workflows/quality-check.yml
-- [x] T013 Verify log accessibility and failure reporting (SC-004) in `.github/workflows/quality-check.yml`
+- [x] T012 Implement code coverage reporting to GITHUB_STEP_SUMMARY using pcov in .github/workflows/tests.yml
+- [x] T013 Verify log accessibility and failure reporting (SC-004) in `.github/workflows/tests.yml`
 - [x] T014 Final validation of all Success Criteria (SC-001 to SC-002, SC-004)
 - [x] T015 Verify or document GitHub repository settings to enforce the "Tests" workflow as a "Required Status Check" (satisfies SC-003)
 

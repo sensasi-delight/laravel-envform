@@ -41,7 +41,7 @@ To fulfill the requirements of the PR quality gate (PHP matrix, dependency matri
 - **Rejected**: A matrix job is more efficient for testing across multiple PHP versions, though linting (Pint) only needs to run once (e.g., on the highest PHP version) to save resources.
 
 ## Decision: YAML Structure
-The implementation will be a single file `.github/workflows/quality-check.yml`.
+The implementation will be a single file `.github/workflows/tests.yml`.
 
 ### Rationale
 Centralizing the quality gate logic makes it easier to maintain and ensures that all checks are performed in a consistent environment.

@@ -1,6 +1,6 @@
 # Contract: GitHub Actions Workflow YAML
 
-## Schema: `.github/workflows/quality-check.yml`
+## Schema: `.github/workflows/tests.yml`
 
 This YAML file follows the [GitHub Actions Workflow Schema](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions).
 
