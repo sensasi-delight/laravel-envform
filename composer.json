@@ -58,8 +58,8 @@
     "require-dev": {
         "phpstan/phpstan": "^2.1",
         "laravel/pint": "^1.13",
-        "phpunit/phpunit": "^11.1 || ^12.0",
-        "orchestra/testbench": "^9.1 || ^10.0"
+        "phpunit/phpunit": "^11.0 || ^12.0",
+        "orchestra/testbench": "^10.0"
     },
     "autoload-dev": {
         "psr-4": {
