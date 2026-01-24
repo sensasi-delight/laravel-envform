@@ -15,7 +15,8 @@ class ServiceTest extends TestCase
 {
     private Service $service;
 
-    private RegistryService|MockObject $registry;
+    /** @var RegistryService&MockObject */
+    private RegistryService $registry;
 
     protected function setUp(): void
     {
