@@ -25,8 +25,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Define `METADATA_BLACKLIST` constant in `src/OptionResolver/Service.php`
-- [ ] T002 Create directory `tests/Unit/OptionResolver`
+- [x] T001 Define `METADATA_BLACKLIST` constant in `src/OptionResolver/Service.php`
+- [x] T002 Create directory `tests/Unit/OptionResolver`
 
 ---
 
@@ -34,7 +34,7 @@
 
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-- [ ] T003 Update `src/OptionResolver/Service.php` to include alphabetical sorting in `resolve()` method
+- [x] T003 Update `src/OptionResolver/Service.php` to include alphabetical sorting in `resolve()` method
 
 ---
 
@@ -46,15 +46,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T004 [P] [US1] Create unit test for nullability detection and `null` option prepending in `tests/Unit/OptionResolver/ServiceTest.php`
+- [x] T004 [P] [US1] Create unit test for nullability detection and `null` option prepending in `tests/Unit/OptionResolver/ServiceTest.php`
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Update `src/Hint/Service.php` to support manual `nullable` overrides in hints metadata
-- [ ] T006 [US1] Update `src/OptionResolver/Service.php` to detect field nullability using `Registry\Service::getStaticValue()` and `Hint\Service`
-- [ ] T007 [US1] Modify `src/OptionResolver/Service.php` to prepend literal `null` to the options list if a field is nullable
-- [ ] T008 [US1] Ensure `null` selection is correctly handled by the `ValueResolver\Service` logic in `src/ValueResolver/Service.php`
-- [ ] T009 [P] [US1] Create integration test for common nullable fields (cache.default, database.default) in `tests/Feature/ValueResolver/NullableFieldsTest.php`
+- [x] T005 [US1] Update `src/Hint/Service.php` to support manual `nullable` overrides in hints metadata
+- [x] T006 [US1] Update `src/OptionResolver/Service.php` to detect field nullability using `Registry\Service::getStaticValue()` and `Hint\Service`
+- [x] T007 [US1] Modify `src/OptionResolver/Service.php` to prepend literal `null` to the options list if a field is nullable
+- [x] T008 [US1] Ensure `null` selection is correctly handled by the `ValueResolver\Service` logic in `src/ValueResolver/Service.php`
+- [x] T009 [P] [US1] Create integration test for common nullable fields (cache.default, database.default) in `tests/Feature/ValueResolver/NullableFieldsTest.php`
 
 ---
 
@@ -66,11 +66,11 @@
 
 ### Tests for User Story 2
 
-- [ ] T010 [P] [US2] Add unit tests for metadata filtering (Redis example) in `tests/Unit/OptionResolver/ServiceTest.php`
+- [x] T010 [P] [US2] Add unit tests for metadata filtering (Redis example) in `tests/Unit/OptionResolver/ServiceTest.php`
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Implement metadata key filtering in `src/OptionResolver/Service.php` using `METADATA_BLACKLIST`
+- [x] T011 [US2] Implement metadata key filtering in `src/OptionResolver/Service.php` using `METADATA_BLACKLIST`
 
 ---
 
@@ -78,10 +78,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T012 [US1] Update `src/OptionResolver/Service.php` to throw `BackToMenuException` when the resolved options list is empty
-- [ ] T013 [US1] Update `src/Wizard/Service.php` to catch `BackToMenuException` and display a warning using `Laravel\Prompts\warning()`
-- [ ] T014 [P] Run `php artisan test` to verify all changes
-- [ ] T015 [P] Run quickstart.md validation
+- [x] T012 [US1] Update `src/OptionResolver/Service.php` to throw `BackToMenuException` when the resolved options list is empty
+- [x] T013 [US1] Update `src/Wizard/Service.php` to catch `BackToMenuException` and display a warning using `Laravel\Prompts\warning()`
+- [x] T014 [P] Run `php artisan test` to verify all changes
+- [x] T015 [P] Run quickstart.md validation
 
 ---
 

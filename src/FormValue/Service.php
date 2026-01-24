@@ -6,10 +6,10 @@ namespace EnvForm\FormValue;
 
 class Service
 {
-    /** @var array<string, bool|int|string> */
+    /** @var array<string, bool|int|string|null> */
     private array $inputs = [];
 
-    public function set(string $envKey, bool|int|string $value): void
+    public function set(string $envKey, bool|int|string|null $value): void
     {
         $this->inputs[$envKey] = $value;
     }
@@ -17,6 +17,11 @@ class Service
     public function get(string $envKey): bool|int|string|null
     {
         return $this->inputs[$envKey] ?? null;
+    }
+
+    public function has(string $envKey): bool
+    {
+        return array_key_exists($envKey, $this->inputs);
     }
 
     public function isDirty(): bool
