@@ -1,6 +1,6 @@
 # Quickstart: Value Resolver
 
-## 1. Adding an Implicit Rule
+## 1. Adding an Inference Rule
 
 Add a new closure to `resources/inferences.php`:
 
@@ -26,4 +26,4 @@ The service automatically checks sources in this order:
 1.  **FormValue**: Values entered during the current CLI session.
 2.  **DotEnv**: Values already present in the `.env` file.
 3.  **Config Default**: Static values found in `config/*.php` via AST analysis.
-4.  **Implicit**: Logic defined in `resources/inferences.php`.
+4.  **Inference**: Logic defined in `resources/inferences.php`.

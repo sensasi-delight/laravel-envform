@@ -2,26 +2,26 @@
 
 **Feature Branch**: `005-value-resolver`  
 **Created**: 2026-01-23  
-**Status**: Draft  
+**Status**: Completed  
 **Input**: User description: "create a clear improvement proposal addressing an undocumented implicit default in laravel configuration: when DB_CACHE_LOCK_TABLE is not set, laravel derives its value by appending _lock to DB_CACHE_TABLE, resulting in an effective default like {DB_CACHE_TABLE}_lock even though this behavior is not stated in config files or documentation. explain that this creates confusion when inspecting configuration, leads to incorrect assumptions by static analysis or env tooling, and causes third-party tools to miss or mis-handle the derived value. argue that making this behavior explicit, either by exposing the derived value directly in configuration, would improve clarity, correctness, and deterministic behavior for both users and tools."
 
 ## Clarifications
 
 ### Session 2026-01-23
 - Q: Internally, should the tool use the ENV key or the Laravel config path for normalization? → A: Config Path: Use `cache.stores.database.lock_table` as the primary internal identifier.
-- Q: How should the priority of values be handled? → A: Prioritized Resolution: 1. `formvalue`, 2. `existing` (.env), 3. `default` (config), 4. `derived`.
+- Q: How should the priority of values be handled? → A: Prioritized Resolution: 1. `formvalue`, 2. `existing` (.env), 3. `default` (config), 4. `inference`.
 - Q: Should derived values be part of the Registry? → A: Decoupled: Exclude from Registry/EnvVar DTO. Handled by a dedicated service.
 - Q: What is the name of the resolution service? → A: `ValueResolver\Service`.
-- Q: Where should implicit logic be stored? → A: `resources/inferences.php`: A map of config keys to a closure that handles the implicit logic.
-- Q: What is the signature of the implicit closure? → A: `fn(ValueResolver\Service $resolver): mixed`. This allows the closure to resolve other keys if needed while supporting simple static values.
+- Q: Where should inference logic be stored? → A: `resources/inferences.php`: A map of config keys to a closure that handles the implicit logic.
+- Q: What is the signature of the inference closure? → A: `fn(ValueResolver\Service $resolver): mixed`. This allows the closure to resolve other keys if needed while supporting simple static values.
 - Q: How does ValueResolver access config defaults? → A: Registry Lookup: Consumes `Registry\Service` to perform global lookups for any configuration key's metadata (including defaults).
 
 ### Session 2026-01-24
 - Q: How should the wizard indicate to the user that a value is implicit rather than a standard Laravel default? → A: Normal Default: No special visual distinction in the UI.
 - Q: Where should the `ValueResolver` classes be located in the directory structure? → A: `src/ValueResolver/`: Follow the project's modular pattern as a top-level namespace.
 - Q: How should the `ValueResolver` handle circular dependencies? → A: Fail Fast: Throw a `LogicException` if a circular dependency is detected to prevent stack overflows and ensure configuration correctness.
-- Q: How should the implicit rules be loaded and accessed? → A: Repository Pattern: Use `src/ValueResolver/Repository.php` to load rules from `resources/inferences.php`, keeping data access separate from logic.
-- Q: Should the `Wizard\Service` delegate all value lookups to the `ValueResolver`? → A: Centralized Lookup: Yes. The `Wizard\Service` will consume `ValueResolver\Service` to resolve all values, ensuring consistent priority (FormValue > DotEnv > Config > Implicit) and clean orchestration logic.
+- Q: How should the inference rules be loaded and accessed? → A: Repository Pattern: Use `src/ValueResolver/Repository.php` to load rules from `resources/inferences.php`, keeping data access separate from logic.
+- Q: Should the `Wizard\Service` delegate all value lookups to the `ValueResolver`? → A: Centralized Lookup: Yes. The `Wizard\Service` will consume `ValueResolver\Service` to resolve all values, ensuring consistent priority (FormValue > DotEnv > Config > Inference) and clean orchestration logic.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -47,20 +47,16 @@ return [
 
 ## Success Criteria *(mandatory)*
 
-- **SC-001**: `ValueResolver` correctly returns `cache_lock` when `DB_CACHE_LOCK_TABLE` is missing but `DB_CACHE_TABLE` is `cache`.
-- **SC-002**: The `.env` file correctly receives the derived value if the user accepts the suggestion in the wizard.
-
-
-### Assumptions
-
-- The tool assumes the target project is a Laravel application following standard configuration patterns.
-- The derivation logic (`{DB_CACHE_TABLE}_lock`) is a fixed pattern based on current Laravel source code.
-- Users have the ability to modify their `.env` files via the tool.
-
-## Success Criteria *(mandatory)*
+### Acceptance Criteria
+- **AC-001**: `ValueResolver` correctly returns `cache_lock` when `DB_CACHE_LOCK_TABLE` is missing but `DB_CACHE_TABLE` is `cache`.
+- **AC-002**: The `.env` file correctly receives the inferred value if the user accepts the suggestion in the wizard.
 
 ### Measurable Outcomes
-
-- **SC-001**: 100% of projects using default Laravel database cache configuration without `DB_CACHE_LOCK_TABLE` in `.env` are correctly identified as having an implicit dependency.
-- **SC-002**: The wizard successfully guides a user to add `DB_CACHE_LOCK_TABLE` to their `.env` with the correct derived value in under 30 seconds.
+- **SC-001**: 100% of projects using default Laravel database cache configuration without `DB_CACHE_LOCK_TABLE` in `.env` are correctly identified as having an inference rule dependency.
+- **SC-002**: The wizard successfully guides a user to add `DB_CACHE_LOCK_TABLE` to their `.env` with the correct inferred value in under 30 seconds.
 - **SC-003**: 0% regression in existing environment variable detection for other configuration keys.
+
+## Assumptions
+- The tool assumes the target project is a Laravel application following standard configuration patterns.
+- The inference logic (`{DB_CACHE_TABLE}_lock`) is a fixed pattern based on current Laravel source code.
+- Users have the ability to modify their `.env` files via the tool.

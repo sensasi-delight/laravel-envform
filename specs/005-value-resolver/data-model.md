@@ -2,11 +2,11 @@
 
 ## Entities
 
-### ImplicitRule
+### InferenceRule
 - **ConfigPath** (string): The Laravel dot-notation path (e.g., `cache.stores.database.lock_table`).
-- **Logic** (Closure): The implicit logic.
+- **Logic** (Closure): The inference logic.
     - Input: `ValueResolver\Service`
-    - Output: `mixed` (The implicit value)
+    - Output: `mixed` (The inferred value)
 
 ### ValueResolverState (Internal)
 - **ResolutionStack** (array<string>): Tracks keys currently being resolved to detect cycles.
@@ -19,7 +19,7 @@
     - `DotEnv\Service` (for existing values)
     - `FormValue\Service` (for current session values)
 
-## Implicit File Structure (`resources/inferences.php`)
+## Inference File Structure (`resources/inferences.php`)
 
 ```php
 <?php

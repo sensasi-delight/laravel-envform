@@ -7,7 +7,7 @@ interface ValueResolverInterface
 {
     /**
      * Resolves a value for a given config path or environment key.
-     * Priority: FormValue > DotEnv > Config Default > Implicit
+     * Priority: FormValue > DotEnv > Config Default > Inference
      *
      * @param string $key Dot-notation config path or Env Key
      * @return mixed

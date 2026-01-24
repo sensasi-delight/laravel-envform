@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Detect and Handle Implicit `DB_CACHE_LOCK_TABLE` Default
+# Specification Quality Checklist: Detect and Handle Inferred `DB_CACHE_LOCK_TABLE` Default
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-01-23
