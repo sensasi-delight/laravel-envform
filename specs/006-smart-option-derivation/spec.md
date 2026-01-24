@@ -2,7 +2,7 @@
 
 **Feature Branch**: `006-smart-option-derivation`  
 **Created**: 2026-01-24  
-**Status**: Draft  
+**Status**: Implemented  
 **Input**: User description: "006 EnvForm currently derives select options by mapping config values to array keys in related config paths (e.g. database.default → database.connections, cache.default → cache.stores, cache.stores.database.connection → database.connections). this works for simple cases but fails in two important scenarios. first, some config values legitimately support null in addition to mapped keys, such as cache.default, where null is a valid value even though it is not present in cache.stores. second, some source config arrays mix connection definitions with non-connection metadata at the same depth, such as database.redis, which contains both redis connections (default, cache) and configuration entries (client, options), causing EnvForm to incorrectly include invalid options for fields like cache.stores.redis.connection. as a result, the current mapping logic is too naive and cannot reliably distinguish between valid selectable keys, nullable defaults, and non-selectable configuration entries, leading to incorrect or misleading select prompts."
 
 ## Clarifications

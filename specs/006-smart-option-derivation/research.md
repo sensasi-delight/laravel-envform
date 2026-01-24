@@ -9,8 +9,8 @@
 - `clusters`
 
 ## Decision: Hybrid Nullability Detection
-**Decision**: Use `Registry\Service::getStaticValue()` to detect if a config key has a default value of `null` in the AST. Allow manual overrides via a new `nullable` configuration or within `hints.php` (if it supports metadata, but better to keep it clean).
-**Refinement**: For now, the "auto-detection" will check if the AST-parsed default value is `null`. If it is, `null` is added to the options.
+**Decision**: Use `Registry\Service::getStaticValue()` to detect if a config key has a default value of `null` in the AST.
+**Refinement**: For explicit overrides (keys that support null but have non-null AST defaults), we use an internal `NULLABLE_OVERRIDES` constant within `OptionResolver\Service`. Manual overrides via `hints.php` were deferred to keep the initial implementation focused and avoid circular dependencies between services during this phase.
 
 ## Decision: Empty Option Handling
 **Decision**: Throw a `BackToMenuException` (or similar) with a warning message when `resolveOptions()` returns an empty array.
