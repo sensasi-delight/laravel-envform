@@ -44,15 +44,22 @@ final class WizardIntegrationTest extends TestCase
         // We expect that DB_CACHE_LOCK_TABLE will be suggested as "my_table_lock"
         // because DB_CACHE_TABLE is set to "my_table" in .env.
 
+        $prompt = function (string $key, string $progress, bool $isTrigger = false) {
+            $prefix = $isTrigger ? '🚀' : '⚙️';
+            $navigation = (PHP_OS_FAMILY !== 'Windows') ? ' (Ctrl+C: Back)' : '';
+
+            return "{$prefix} {$progress} {$key}{$navigation}";
+        };
+
         /** @phpstan-ignore method.nonObject */
         $this->artisan('envform')
             ->expectsQuestion('📂 Which environment file do you want to manage?', '.env')
             // Select cache.php
             ->expectsQuestion('📂 Select a configuration file to configure', 'cache')
             // It should ask for all three variables in the group.
-            ->expectsQuestion('🚀  [1/3] CACHE_STORE', 'database')
-            ->expectsQuestion('⚙️  [2/3] DB_CACHE_LOCK_TABLE', 'my_table_lock')
-            ->expectsQuestion('⚙️  [3/3] DB_CACHE_TABLE', 'my_table')
+            ->expectsQuestion($prompt('CACHE_STORE', '[1/3]', true), 'database')
+            ->expectsQuestion($prompt('DB_CACHE_LOCK_TABLE', '[2/3]'), 'my_table_lock')
+            ->expectsQuestion($prompt('DB_CACHE_TABLE', '[3/3]'), 'my_table')
             ->expectsQuestion('📂 Select a configuration file to configure', 'exit')
             ->expectsQuestion('📄 Enter the output filename', '.env')
             ->expectsQuestion('⚠️ File [.env] already exists. Do you want to overwrite it?', true)

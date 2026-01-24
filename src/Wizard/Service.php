@@ -228,7 +228,7 @@ final class Service
         $initial = $this->valueResolver->resolve($envVar->key);
         $defaultValue = $envVar->default;
 
-        $prefix = $envVar->isTrigger ? '🚀 ' : '⚙️ ';
+        $prefix = $envVar->isTrigger ? '🚀' : '⚙️';
         $progress = $this->getVisibleProgressLabel($envVar);
 
         $navigationLabel = '';
@@ -290,7 +290,7 @@ final class Service
 
         $currentValue = $this->valueResolver->resolve($envVar->key);
 
-        $prefix = '🚀 ';
+        $prefix = '🚀';
         $progress = $this->getVisibleProgressLabel($envVar);
 
         $navigationLabel = '';
@@ -332,7 +332,7 @@ final class Service
             $additionalDefaultOption = $this->registry->getStaticValue('database.default');
         }
 
-        $prefix = $ekd->isTrigger ? '🚀 ' : '⚙️ ';
+        $prefix = $ekd->isTrigger ? '🚀' : '⚙️';
         $progress = $this->getVisibleProgressLabel($ekd);
 
         $navigationLabel = '';
