@@ -46,10 +46,14 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
+        $serviceDetection = $this->createMock(\EnvForm\ServiceDetection\ServiceDetectionInterface::class);
+        $serviceDetection->method('isKeyRelevant')->willReturn(true);
+
         $service = new Service(
             $this->formValue,
             $this->registry,
-            $this->dependencyRepository
+            $this->dependencyRepository,
+            $serviceDetection
         );
 
         $var = $this->registry->all()->firstWhere('key', 'APP_NAME');
@@ -83,10 +87,14 @@ final class ServiceTest extends TestCase
         // FormValue stores by ENV KEY
         $this->formValue->set('CACHE_DRIVER', 'file');
 
+        $serviceDetection = $this->createMock(\EnvForm\ServiceDetection\ServiceDetectionInterface::class);
+        $serviceDetection->method('isKeyRelevant')->willReturn(true);
+
         $service = new Service(
             $this->formValue,
             $this->registry,
-            $this->dependencyRepository
+            $this->dependencyRepository,
+            $serviceDetection
         );
 
         $var = $this->registry->all()->firstWhere('key', 'REDIS_HOST');
@@ -112,10 +120,14 @@ final class ServiceTest extends TestCase
             ],
         ]);
 
+        $serviceDetection = $this->createMock(\EnvForm\ServiceDetection\ServiceDetectionInterface::class);
+        $serviceDetection->method('isKeyRelevant')->willReturn(true);
+
         $service = new Service(
             $this->formValue,
             $this->registry,
-            $this->dependencyRepository
+            $this->dependencyRepository,
+            $serviceDetection
         );
 
         $var = $this->registry->all()->firstWhere('key', 'REDIS_HOST');

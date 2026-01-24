@@ -1,6 +1,7 @@
 <!--
 SYNC IMPACT REPORT
-- Version change: 1.1.0 -> 1.1.1
+- Version change: 1.1.1 -> 1.1.2
+- Added directive for 'Config-First Internal Consistency' to ensure logic stability.
 - Updated Laravel and PHPUnit version requirements to match project reality.
 - Added GitHub Actions badge to README.
 -->
@@ -11,6 +12,7 @@ SYNC IMPACT REPORT
 
 ### Source Authority
 *   **AST Supremacy**: The Abstract Syntax Tree (via `nikic/php-parser`) is the absolute authority for determining configuration structure and keys.
+*   **Config-First Internal Consistency**: While the tool manages `ENV_KEY` values, all internal logic, dependency rules, and state management MUST be based on `config.key` (dot-notation paths). This ensures stability since `ENV_KEY` names are user-defined and volatile (e.g., `DB_CONNECTION` can be changed to `MY_DB_CONNECTION` in config), whereas `config.key` (e.g., `database.default`) remains fixed by the application's architecture.
 *   **Supporting Signals**: Regex and string manipulation are permitted ONLY as supporting signals (e.g., formatting, parsing comments). They MUST NOT override or contradict AST findings regarding key existence or structure.
 
 ### Idempotent Stability
@@ -73,6 +75,6 @@ SYNC IMPACT REPORT
 *   Violations of **Primary Directives** (e.g., adding "smart" inference or HTTP requests) are rejection criteria.
 
 ### Versioning
-*   **Current Version**: 1.1.1
-*   **Ratified**: 2026-01-23
+*   **Current Version**: 1.1.2
+*   **Ratified**: 2026-01-25
 *   **Protocol**: Semantic Versioning. Changes require verification against the core Mission.

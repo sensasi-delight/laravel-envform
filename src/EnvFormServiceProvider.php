@@ -43,7 +43,19 @@ final class EnvFormServiceProvider extends ServiceProvider
         $this->app->singleton(ValueResolver\Repository::class, fn () => new ValueResolver\Repository([
             (string) realpath(__DIR__.'/../resources'),
         ]));
+        $this->app->singleton(
+            ValueResolver\ValueResolverInterface::class,
+            ValueResolver\Service::class
+        );
         $this->app->singleton(ValueResolver\Service::class);
+
+        // #### ServiceDetection #####
+
+        $this->app->singleton(ServiceDetection\Repository::class);
+        $this->app->singleton(
+            ServiceDetection\ServiceDetectionInterface::class,
+            ServiceDetection\Service::class
+        );
 
         // #### ShouldAsk #####
 

@@ -25,7 +25,6 @@ class Service
     public function __construct(
         private readonly FormValue\Service $formValue,
         private readonly Registry\Service $registry,
-        private readonly ShouldAsk\Service $shouldAsk,
         private readonly Repository $repository,
         private readonly Formatter $formatter
     ) {}
@@ -101,14 +100,14 @@ class Service
         return $final;
     }
 
-    public function save(): void
+    public function save(ShouldAsk\Service $shouldAsk): void
     {
         $path = App::basePath($this->targetFile);
 
         $metadata = $this->registry->all()
             ->keyBy('key')
             ->map(fn (EnvVar $var) => (object) [
-                'shouldAsk' => $this->shouldAsk->isVisible($var),
+                'shouldAsk' => $shouldAsk->isVisible($var),
                 'group' => $var->group,
             ])->toArray();
 

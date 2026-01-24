@@ -13,7 +13,7 @@ declare(strict_types=1);
 return [
     'cache.stores.*' => 'cache.default',
     'database.connections.*' => 'database.default',
-    'filesystem.disks.*' => 'filesystem.default',
+    'filesystems.disks.*' => 'filesystems.default',
     'logging.channels.*' => 'logging.default',
     'mail.mailers.*' => 'mail.default',
     'queue.connections.*' => 'queue.default',
