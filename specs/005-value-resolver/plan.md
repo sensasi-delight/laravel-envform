@@ -5,7 +5,7 @@
 
 ## Summary
 
-The `ValueResolver` feature introduces a centralized service to resolve configuration values across multiple sources (FormValue, DotEnv, Config, and Derivations). This ensures that "magic" defaults in Laravel, such as the implicit derivation of `DB_CACHE_LOCK_TABLE` from `DB_CACHE_TABLE`, are explicitly handled and presented to the user during the environment configuration process.
+The `ValueResolver` feature introduces a centralized service to resolve configuration values across multiple sources (FormValue, DotEnv, Config, and Implicits). This ensures that "magic" defaults in Laravel, such as the implicit derivation of `DB_CACHE_LOCK_TABLE` from `DB_CACHE_TABLE`, are explicitly handled and presented to the user during the environment configuration process.
 
 ## Technical Context
 
@@ -20,10 +20,10 @@ The `ValueResolver` feature introduces a centralized service to resolve configur
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [x] **Deterministic Integrity**: Does this feature rely on AST analysis rather than heuristics? (Yes, it uses explicit derivation rules).
+- [x] **Deterministic Integrity**: Does this feature rely on AST analysis rather than heuristics? (Yes, it uses explicit implicit rules).
 - [x] **Strict Boundary Separation**: Does logic live in Services, and raw access in Repositories? (Yes, `ValueResolver\Service` and `ValueResolver\Repository`).
 - [x] **Privacy First**: Is all processing 100% local with zero outbound connections? (Yes).
-- [x] **Explicit Configuration**: Does this avoid "magic" defaults in favor of explicit .env values? (Yes, it surfaces derived values as explicit defaults).
+- [x] **Explicit Configuration**: Does this avoid "magic" defaults in favor of explicit .env values? (Yes, it surfaces implicit values as explicit defaults).
 - [x] **Quality Mandate**: Will the implementation include `declare(strict_types=1)` and pass PHPStan L8? (Yes).
 
 ## Project Structure
@@ -46,11 +46,11 @@ specs/005-value-resolver/
 src/
 ├── ValueResolver/       # Centralized value resolution logic
 │   ├── Service.php      # Priority-based resolution orchestration
-│   └── Repository.php   # Loader for resources/derivations.php
+│   └── Repository.php   # Loader for resources/inferences.php
 ├── Wizard/
 │   └── Service.php      # Updated to consume ValueResolver
 resources/
-└── derivations.php      # Rule definitions for implicit values
+└── inferences.php       # Rule definitions for implicit values
 
 tests/
 ├── Unit/ValueResolver/

@@ -2,24 +2,24 @@
 
 ## Entities
 
-### DerivationRule
+### ImplicitRule
 - **ConfigPath** (string): The Laravel dot-notation path (e.g., `cache.stores.database.lock_table`).
-- **Logic** (Closure): The derivation logic.
+- **Logic** (Closure): The implicit logic.
     - Input: `ValueResolver\Service`
-    - Output: `mixed` (The derived value)
+    - Output: `mixed` (The implicit value)
 
 ### ValueResolverState (Internal)
 - **ResolutionStack** (array<string>): Tracks keys currently being resolved to detect cycles.
 
 ## Relationships
 - `ValueResolver\Service` consumes `ValueResolver\Repository`.
-- `ValueResolver\Repository` loads `resources/derivations.php`.
+- `ValueResolver\Repository` loads `resources/inferences.php`.
 - `ValueResolver\Service` interacts with:
     - `Registry\Service` (for static defaults)
     - `DotEnv\Service` (for existing values)
     - `FormValue\Service` (for current session values)
 
-## Derivation File Structure (`resources/derivations.php`)
+## Implicit File Structure (`resources/inferences.php`)
 
 ```php
 <?php

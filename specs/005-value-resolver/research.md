@@ -15,7 +15,7 @@
     - **Passing raw data**: Closures might need to resolve keys they don't know the raw data for yet.
 
 ## Decision: Resource File Location
-- **Chosen**: `resources/derivations.php`.
+- **Chosen**: `resources/inferences.php`.
 - **Rationale**: Consistent with `resources/hints.php` and `resources/dependencies.php`.
 - **Alternatives Considered**: 
     - **Config directory**: This is a package resource, not user configuration.

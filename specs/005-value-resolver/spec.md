@@ -12,29 +12,29 @@
 - Q: How should the priority of values be handled? → A: Prioritized Resolution: 1. `formvalue`, 2. `existing` (.env), 3. `default` (config), 4. `derived`.
 - Q: Should derived values be part of the Registry? → A: Decoupled: Exclude from Registry/EnvVar DTO. Handled by a dedicated service.
 - Q: What is the name of the resolution service? → A: `ValueResolver\Service`.
-- Q: Where should derivation logic be stored? → A: `resources/derivations.php`: A map of config keys to a closure that handles the derivation logic.
-- Q: What is the signature of the derivation closure? → A: `fn(ValueResolver\Service $resolver): mixed`. This allows the closure to resolve other keys if needed while supporting simple static values.
+- Q: Where should implicit logic be stored? → A: `resources/inferences.php`: A map of config keys to a closure that handles the implicit logic.
+- Q: What is the signature of the implicit closure? → A: `fn(ValueResolver\Service $resolver): mixed`. This allows the closure to resolve other keys if needed while supporting simple static values.
 - Q: How does ValueResolver access config defaults? → A: Registry Lookup: Consumes `Registry\Service` to perform global lookups for any configuration key's metadata (including defaults).
 
 ### Session 2026-01-24
-- Q: How should the wizard indicate to the user that a value is derived rather than a standard Laravel default? → A: Normal Default: No special visual distinction in the UI.
+- Q: How should the wizard indicate to the user that a value is implicit rather than a standard Laravel default? → A: Normal Default: No special visual distinction in the UI.
 - Q: Where should the `ValueResolver` classes be located in the directory structure? → A: `src/ValueResolver/`: Follow the project's modular pattern as a top-level namespace.
-- Q: How should the `ValueResolver` handle circular dependencies? → A: Fail Fast: Throw a `LogicException` if a circular derivation is detected to prevent stack overflows and ensure configuration correctness.
-- Q: How should the derivation rules be loaded and accessed? → A: Repository Pattern: Use `src/ValueResolver/Repository.php` to load rules from `resources/derivations.php`, keeping data access separate from logic.
-- Q: Should the `Wizard\Service` delegate all value lookups to the `ValueResolver`? → A: Centralized Lookup: Yes. The `Wizard\Service` will consume `ValueResolver\Service` to resolve all values, ensuring consistent priority (FormValue > DotEnv > Config > Derived) and clean orchestration logic.
+- Q: How should the `ValueResolver` handle circular dependencies? → A: Fail Fast: Throw a `LogicException` if a circular dependency is detected to prevent stack overflows and ensure configuration correctness.
+- Q: How should the implicit rules be loaded and accessed? → A: Repository Pattern: Use `src/ValueResolver/Repository.php` to load rules from `resources/inferences.php`, keeping data access separate from logic.
+- Q: Should the `Wizard\Service` delegate all value lookups to the `ValueResolver`? → A: Centralized Lookup: Yes. The `Wizard\Service` will consume `ValueResolver\Service` to resolve all values, ensuring consistent priority (FormValue > DotEnv > Config > Implicit) and clean orchestration logic.
 
 ## User Scenarios & Testing *(mandatory)*
 
-- **UX-001**: Derived values are presented as the default choice in prompts (e.g., using `Laravel\Prompts\text(default: ...)`), appearing identical to standard Laravel defaults to maintain a clean interface.
-- **UX-002**: If a user provides an explicit value via `formvalue`, it overrides the derived value.
+- **UX-001**: Implicit values are presented as the default choice in prompts (e.g., using `Laravel\Prompts\text(default: ...)`), appearing identical to standard Laravel defaults to maintain a clean interface.
+- **UX-002**: If a user provides an explicit value via `formvalue`, it overrides the implicit value.
 ...
 ### Key Entities
 
 - **ValueResolver\Service**: The "Brain" for value resolution. Consumes `Registry\Service`, `FormValue\Service`, and `DotEnv\Service`. Provides a `resolve(string $configPath)` method that applies the priority logic globally.
-- **ValueResolver\Repository**: Loads and provides access to rules defined in `resources/derivations.php`.
+- **ValueResolver\Repository**: Loads and provides access to rules defined in `resources/inferences.php`.
 
 
-### Data Model: `resources/derivations.php`
+### Data Model: `resources/inferences.php`
 
 ```php
 return [

@@ -1,8 +1,8 @@
 # Quickstart: Value Resolver
 
-## 1. Adding a Derivation Rule
+## 1. Adding an Implicit Rule
 
-Add a new closure to `resources/derivations.php`:
+Add a new closure to `resources/inferences.php`:
 
 ```php
 return [
@@ -26,4 +26,4 @@ The service automatically checks sources in this order:
 1.  **FormValue**: Values entered during the current CLI session.
 2.  **DotEnv**: Values already present in the `.env` file.
 3.  **Config Default**: Static values found in `config/*.php` via AST analysis.
-4.  **Derivation**: Logic defined in `resources/derivations.php`.
+4.  **Implicit**: Logic defined in `resources/inferences.php`.
