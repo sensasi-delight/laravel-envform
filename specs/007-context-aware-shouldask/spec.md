@@ -67,7 +67,7 @@ As a user, I want a third-party service to remain "Active" as long as at least o
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST define a mapping between **Services** (e.g., Redis, AWS, Mailgun, Postmark) and the **Subsystems/Drivers** that activate them, stored in `resources/services.php`.
+- **FR-001**: The system MUST define a mapping in `resources/services.php` between **Services** and their **Activators** (the specific Subsystem driver values that trigger activation, e.g., `queue.default = sqs`).
 - **FR-002**: The system MUST resolve the **Effective Driver** for every major Laravel subsystem (Database, Cache, Session, Queue, Mail, Filesystem, Broadcasting, Scout) using `ValueResolver`.
 - **FR-003**: A **Service** MUST be considered **Active** if at least one subsystem is configured to use a driver associated with that service.
 - **FR-004**: The system MUST allow grouping environment variables by their parent **Service** using an explicit list of config key patterns (e.g., `database.redis.*`).
@@ -78,7 +78,7 @@ As a user, I want a third-party service to remain "Active" as long as at least o
 
 - **Service**: A third-party integration or infrastructure component (e.g., "Redis").
 - **Subsystem**: A Laravel feature area (e.g., "Queue") that can be powered by different Services.
-- **ServiceRule**: Logic that determines if a Service is active (e.g., "Active if `queue.default == 'redis'` OR `cache.default == 'redis'`).
+- **ServiceDefinition**: The static mapping defining a Service, its **Activators** (drivers that trigger it), its **Master Keys**, and its config patterns.
 - **ServiceContext**: The registry of currently active Services for the current session.
 
 ## Success Criteria
