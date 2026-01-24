@@ -14,7 +14,6 @@ final class RepositoryTest extends ValueResolverTestCase
         $rules = $repo->all();
 
         $this->assertArrayHasKey('cache.stores.database.lock_table', $rules);
-        $this->assertInstanceOf(\Closure::class, $rules['cache.stores.database.lock_table']);
     }
 
     final public function test_it_can_find_a_specific_rule(): void

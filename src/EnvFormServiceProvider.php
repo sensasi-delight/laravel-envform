@@ -24,7 +24,7 @@ final class EnvFormServiceProvider extends ServiceProvider
         $this->app->bind(
             Hint\Repository::class,
             fn () => new Hint\Repository([
-                __DIR__.'/../../resources',
+                (string) realpath(__DIR__.'/../resources'),
             ])
         );
 
@@ -41,7 +41,7 @@ final class EnvFormServiceProvider extends ServiceProvider
         // #### ValueResolver #####
 
         $this->app->singleton(ValueResolver\Repository::class, fn () => new ValueResolver\Repository([
-            __DIR__.'/../resources',
+            (string) realpath(__DIR__.'/../resources'),
         ]));
         $this->app->singleton(ValueResolver\Service::class);
 

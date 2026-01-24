@@ -195,8 +195,12 @@ final class Service
         try {
             $result = $this->askForValue($envVar, $session);
 
+            if ($result === 'null') {
+                $result = null;
+            }
+
             // Sync current step result immediately to FormValue
-            if ($result !== null) {
+            if ($result !== null || $this->formValue->has($envVar->key)) {
                 $this->formValue->set($envVar->key, $result);
 
                 if ($envVar->isTrigger) {
@@ -316,15 +320,16 @@ final class Service
 
     private function handleStrictKeys(EnvVar $ekd, NavigationSession $session): mixed
     {
-        $options = $this->optionResolver->resolveOptions($ekd);
+        try {
+            $options = $this->optionResolver->resolveOptions($ekd);
+        } catch (\EnvForm\Exceptions\BackToMenuException $e) {
+            \Laravel\Prompts\warning('⚠️ '.$e->getMessage());
 
-        if ($options === null) {
             return false;
         }
 
-        $additionalOptions = $ekd->configKeys->contains('cache.default') ? ['null'] : [];
-        foreach ($additionalOptions as $opt) {
-            $options[$opt] = $opt;
+        if ($options === null) {
+            return false;
         }
 
         $additionalDefaultOption = null;
@@ -382,7 +387,7 @@ final class Service
     }
 
     /**
-     * @param  array<string, string>  $options
+     * @param  array<string, string|null>  $options
      */
     private function buildSelect(
 
@@ -397,34 +402,24 @@ final class Service
         ?NavigationSession $session = null
 
     ): mixed {
-
         $defaultValue = $this->valueResolver->resolve($envVar->key)
             ?? $additionalDefaultOption;
 
         $hint = $this->hint->get($envVar->configKeys[0]);
 
+        $options = array_map(fn ($v) => $v ?? 'null', $options);
+
         return $this->runPromptWithBackSupport(
-
             new SelectPrompt(
-
                 label: $label,
-
                 options: $options,
-
                 default: (string) $defaultValue,
-
                 hint: $hint,
-
                 scroll: \count($options)
-
             ),
-
             $session,
-
             $envVar
-
         );
-
     }
 
     private function runPromptWithBackSupport(Prompt $prompt, ?NavigationSession $session, EnvVar $envVar): mixed
