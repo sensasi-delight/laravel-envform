@@ -24,6 +24,23 @@ final class Service implements ValueResolverInterface
     ) {}
 
     /**
+     * Determine if a value is explicitly set in FormValue or DotEnv.
+     */
+    final public function has(string $key): bool
+    {
+        $envVar = $this->registry->find($key);
+        $envKey = $envVar?->key;
+
+        if ($envKey !== null) {
+            return $this->formValue->get($envKey) !== null
+                || $this->dotEnv->getExistingValue($envKey) !== null;
+        }
+
+        return $this->formValue->get($key) !== null
+            || $this->dotEnv->getExistingValue($key) !== null;
+    }
+
+    /**
      * Resolves a value for a given config path or environment key.
      * Priority: FormValue > DotEnv > Config Default > Implicit
      *
@@ -40,14 +57,18 @@ final class Service implements ValueResolverInterface
         $this->resolutionStack[] = $key;
 
         try {
+            // Try to find if this is a config path mapped to an env key
+            $envVar = $this->registry->find($key);
+            $envKey = $envVar?->key;
+
             // 1. FormValue
-            $formValue = $this->formValue->get($key);
+            $formValue = ($envKey !== null) ? $this->formValue->get($envKey) : $this->formValue->get($key);
             if ($formValue !== null) {
                 return $formValue;
             }
 
             // 2. DotEnv
-            $dotEnvValue = $this->dotEnv->getExistingValue($key);
+            $dotEnvValue = ($envKey !== null) ? $this->dotEnv->getExistingValue($envKey) : $this->dotEnv->getExistingValue($key);
             if ($dotEnvValue !== null) {
                 return $dotEnvValue;
             }

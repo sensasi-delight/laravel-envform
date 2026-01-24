@@ -15,4 +15,9 @@ interface ValueResolverInterface
      * @throws \LogicException On circular dependencies
      */
     public function resolve(string $key): mixed;
+
+    /**
+     * Determine if a value is explicitly set in FormValue or DotEnv.
+     */
+    public function has(string $key): bool;
 }

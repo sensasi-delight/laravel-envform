@@ -86,12 +86,15 @@ final class ServiceTest extends TestCase
             'cache.stores.*' => 'cache.default',
         ]);
 
-        $shouldAsk = new ShouldAskService($formValue, $registry, $depRepo);
+        $serviceDetection = $this->createMock(\EnvForm\ServiceDetection\ServiceDetectionInterface::class);
+        $serviceDetection->method('isKeyRelevant')->willReturn(true);
 
-        $service = new Service($formValue, $registry, $shouldAsk, $repo, $formatter);
+        $shouldAsk = new ShouldAskService($formValue, $registry, $depRepo, $serviceDetection);
+
+        $service = new Service($formValue, $registry, $repo, $formatter);
         $service->setTargetFile('.env.test');
 
-        $service->save();
+        $service->save($shouldAsk);
 
         $this->assertFileExists($this->tempEnvFile);
         $content = File::get($this->tempEnvFile);

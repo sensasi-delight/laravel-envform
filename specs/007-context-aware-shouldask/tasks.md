@@ -22,9 +22,9 @@ description: "Task list for Context Aware ShouldAsk implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create mapping file `resources/services.php` with default Laravel service triggers
-- [ ] T002 [P] Create `ServiceDefinition` DTO in `src/ServiceDetection/DTO/ServiceDefinition.php`
-- [ ] T003 [P] Create `ServiceContext` DTO in `src/ServiceDetection/DTO/ServiceContext.php`
+- [X] T001 Create mapping file `resources/services.php` with default Laravel service triggers
+- [X] T002 [P] Create `ServiceDefinition` DTO in `src/ServiceDetection/DTO/ServiceDefinition.php`
+- [X] T003 [P] Create `ServiceContext` DTO in `src/ServiceDetection/DTO/ServiceContext.php`
 
 ---
 
@@ -34,9 +34,9 @@ description: "Task list for Context Aware ShouldAsk implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement `Repository` in `src/ServiceDetection/Repository.php` to load service mapping
-- [ ] T005 [P] Implement `ServiceDetectionInterface` in `src/ServiceDetection/Service.php`
-- [ ] T006 [P] Implement driver resolution using `ValueResolver` in `src/ServiceDetection/Service.php`
+- [X] T004 Implement `Repository` in `src/ServiceDetection/Repository.php` to load service mapping
+- [X] T005 [P] Implement `ServiceDetectionInterface` in `src/ServiceDetection/Service.php`
+- [X] T006 [P] Implement driver resolution using `ValueResolver` in `src/ServiceDetection/Service.php`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -50,10 +50,10 @@ description: "Task list for Context Aware ShouldAsk implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implement `isActive()` logic in `src/ServiceDetection/Service.php`
-- [ ] T008 [US1] Implement `isKeyRelevant()` logic in `src/ServiceDetection/Service.php`
-- [ ] T009 [US1] Inject `ServiceDetection\Service` into `ShouldAsk\Service` in `src/ShouldAsk/Service.php`
-- [ ] T010 [US1] Add service relevancy guard in `ShouldAsk\Service::shouldBeAsked()` in `src/ShouldAsk/Service.php`
+- [X] T007 [US1] Implement `isActive()` logic in `src/ServiceDetection/Service.php`
+- [X] T008 [US1] Implement `isKeyRelevant()` logic in `src/ServiceDetection/Service.php`
+- [X] T009 [US1] Inject `ServiceDetection\Service` into `ShouldAsk\Service` in `src/ShouldAsk/Service.php`
+- [X] T010 [US1] Add service relevancy guard in `ShouldAsk\Service::shouldBeAsked()` in `src/ShouldAsk/Service.php`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -67,8 +67,8 @@ description: "Task list for Context Aware ShouldAsk implementation"
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Update `isActive()` to evaluate all activators for a service in `src/ServiceDetection/Service.php`
-- [ ] T012 [US2] Implement implicit activation (Master key check) in `src/ServiceDetection/Service.php`
+- [X] T011 [US2] Update `isActive()` to evaluate all activators for a service in `src/ServiceDetection/Service.php`
+- [X] T012 [US2] Implement implicit activation (Master key check) in `src/ServiceDetection/Service.php`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -82,8 +82,8 @@ description: "Task list for Context Aware ShouldAsk implementation"
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Ensure `ShouldAsk\Service::refresh()` clears service context cache in `src/ShouldAsk/Service.php`
-- [ ] T014 [US3] Verify visibility adaptation in `tests/Feature/EnvFormCommandTest.php`
+- [X] T013 [US3] Ensure `ShouldAsk\Service::refresh()` clears service context cache in `src/ShouldAsk/Service.php`
+- [X] T014 [US3] Verify visibility adaptation in `tests/Feature/ServiceFilteringTest.php`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -93,11 +93,11 @@ description: "Task list for Context Aware ShouldAsk implementation"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T015 [P] Add comprehensive unit tests for `Service` in `tests/Unit/ServiceDetection/ServiceTest.php`
-- [ ] T016 [P] Add integration test for TUI service filtering in `tests/Feature/ServiceFilteringTest.php`
-- [ ] T017 Run PHPStan Level 8 and Laravel Pint across all modified files
-- [ ] T018 Run `quickstart.md` validation against the completed implementation
-- [ ] T019 [P] Verify SC-003 by confirming prompt reduction on a standard Laravel install baseline
+- [X] T015 [P] Add comprehensive unit tests for `Service` in `tests/Unit/ServiceDetection/ServiceTest.php`
+- [X] T016 [P] Add integration test for TUI service filtering in `tests/Feature/ServiceFilteringTest.php`
+- [X] T017 Run PHPStan Level 8 and Laravel Pint across all modified files
+- [X] T018 Run `quickstart.md` validation against the completed implementation
+- [X] T019 [P] Verify SC-003 by confirming prompt reduction on a standard Laravel install baseline
 
 ---
 

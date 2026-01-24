@@ -44,14 +44,24 @@ class TuiNavigationTest extends TestCase
         $registry = new Registry\Service($registryRepo);
         $hintPath = (string) realpath(__DIR__.'/../../resources');
         $hint = new Hint\Service(new Hint\Repository([$hintPath]));
-        $shouldAsk = new ShouldAsk\Service($this->formValue, $registry, new ShouldAsk\Repository);
+
+        $dotEnvRepository = new DotEnv\Repository;
+        $dotEnvFormatter = new DotEnv\Formatter;
+
+        $serviceDetectionRepo = new \EnvForm\ServiceDetection\Repository;
+
+        // Dummy ValueResolver for circular dependency during setup
+        $valueResolver = $this->createMock(\EnvForm\ValueResolver\ValueResolverInterface::class);
+
+        $serviceDetection = new \EnvForm\ServiceDetection\Service($serviceDetectionRepo, $valueResolver);
+
+        $shouldAsk = new ShouldAsk\Service($this->formValue, $registry, new ShouldAsk\Repository, $serviceDetection);
 
         $dotEnv = new EnvFormDotEnvServiceWrapper(
             $this->formValue,
             $registry,
-            $shouldAsk,
-            new DotEnv\Repository,
-            new DotEnv\Formatter
+            $dotEnvRepository,
+            $dotEnvFormatter
         );
 
         $keyGen = $this->createStub(KeyGenerator\Service::class);
@@ -59,11 +69,27 @@ class TuiNavigationTest extends TestCase
 
         $optionResolver = new OptionResolver\Service($registry);
 
+        // Real ValueResolver
         $valueResolver = new \EnvForm\ValueResolver\Service(
             $dotEnv,
             $this->formValue,
             $registry,
             new \EnvForm\ValueResolver\Repository([$hintPath]) // resources directory
+        );
+
+        // Re-inject real ValueResolver into ServiceDetection if needed, but it's already set in the constructor.
+        // Since it's a mock above, I'll use reflection to set it or just instantiate it correctly now.
+        $serviceDetection = new \EnvForm\ServiceDetection\Service($serviceDetectionRepo, $valueResolver);
+
+        // Re-instantiate shouldAsk with real serviceDetection
+        $shouldAsk = new ShouldAsk\Service($this->formValue, $registry, new ShouldAsk\Repository, $serviceDetection);
+
+        // Re-instantiate dotEnv with real shouldAsk
+        $dotEnv = new EnvFormDotEnvServiceWrapper(
+            $this->formValue,
+            $registry,
+            $dotEnvRepository,
+            $dotEnvFormatter
         );
 
         $this->wizard = new WizardService(
@@ -178,7 +204,7 @@ class TuiNavigationTest extends TestCase
  */
 class EnvFormDotEnvServiceWrapper extends \EnvForm\DotEnv\Service
 {
-    public function save(): void
+    public function save(\EnvForm\ShouldAsk\Service $shouldAsk): void
     {
         // Do nothing
     }

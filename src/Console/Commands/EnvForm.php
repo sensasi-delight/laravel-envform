@@ -37,6 +37,7 @@ final class EnvForm extends Command
     final public function __construct(
         private readonly DotEnv\Service $dotEnv,
         private readonly Registry\Service $registry,
+        private readonly \EnvForm\ShouldAsk\Service $shouldAsk,
         private readonly Wizard\Service $wizard,
     ) {
         parent::__construct();
@@ -131,7 +132,7 @@ final class EnvForm extends Command
             break;
         }
 
-        $this->dotEnv->save();
+        $this->dotEnv->save($this->shouldAsk);
         info("✅ Successfully updated {$filename} file!");
 
         return self::SUCCESS;
