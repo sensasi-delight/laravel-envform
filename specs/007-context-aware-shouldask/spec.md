@@ -2,7 +2,7 @@
 
 **Feature Branch**: `007-context-aware-shouldask`
 **Created**: 2026-01-25
-**Status**: Draft
+**Status**: Completed
 **Input**: User description: "design and implement a smarter ShouldAsk decision system that is aware of actual service usage, not just changes in dependent values. the goal is to ensure env questions are shown only when a third-party service is truly active in the application and completely hidden when it is not used anywhere. this matters because prompting users for env keys of unused services creates noise, confusion, and misconfiguration risk, while missing required keys for active services leads to runtime failures. the solution should infer service activation from effective configuration choices and consistently decide which groups of env keys are relevant, so the env wizard reflects real application behavior, improves signal-to-noise ratio, and guides users to configure only what actually matters."
 
 ## Clarifications

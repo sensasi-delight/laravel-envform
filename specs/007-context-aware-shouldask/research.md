@@ -20,7 +20,11 @@
 - **Rationale**: Prevents false negatives. If Redis is used for Cache but not Queue, Redis variables must still be shown.
 - **Alternatives considered**: Subsystem-specific suppression (too complex, leads to credential duplication or confusion).
 
-## Decision: Unmapped Variables
-- **Chosen**: Always show if missing/invalid.
-- **Rationale**: Ensures critical keys like `APP_KEY` or `APP_DEBUG` are never accidentally hidden just because they aren't part of a "Service".
-- **Alternatives considered**: Hide by default (too risky, blocks basic setup).
+## Decision: Multi-Key Relevance Logic
+- **Chosen**: **OR Logic** (Variable is visible if AT LEAST ONE associated config key is relevant).
+- **Rationale**: Prevents accidental suppression of global variables. For example, `APP_NAME` is used by `app.php` (always relevant) but also by `database.php` for Redis prefixes (irrelevant if Redis is inactive). Using AND logic would hide `APP_NAME` if Redis was disabled, which is incorrect.
+- **Impact**: Ensures that shared credentials or global settings remain visible as long as at least one active subsystem requires them.
+
+## Decision: Circular Dependency Resolution
+- **Chosen**: Parameter Injection for `DotEnv\Service::save()`.
+- **Rationale**: `ValueResolver` needs `DotEnv` to read existing values, and `ShouldAsk` needs `ValueResolver` via `ServiceDetection`. By removing the permanent `ShouldAsk` dependency from `DotEnv`'s constructor and passing it only when saving, we maintained strict boundaries without recursion.

@@ -71,12 +71,13 @@ resources/
 
 ### Phase 3: Integration
 - Update `ShouldAsk\Service` to inject `ServiceDetection\Service`.
-- Add a guard in `shouldBeAsked()` that checks `ServiceDetection::isKeyRelevant()`.
+- **Architectural Adjustment**: Refactor `DotEnv\Service::save()` to accept `ShouldAsk\Service` as a parameter. This breaks the circular dependency chain: `DotEnv` -> `ShouldAsk` -> `ServiceDetection` -> `ValueResolver` -> `DotEnv`.
+- Add a guard in `shouldBeAsked()` that checks `ServiceDetection::isKeyRelevant()` using **OR logic** (visible if ANY config key is relevant).
 
 ### Phase 4: Verification
-- Unit tests for `ServiceDetection\Service`.
-- Feature tests for `ShouldAsk\Service` filtering.
-- Integration test in `EnvFormCommandTest` for end-to-end verification.
+- Unit tests for `ServiceDetection\Service` (Mocking `ValueResolverInterface`).
+- Feature tests for `ServiceFilteringTest` and `BaselinePromptCountTest`.
+- Fixed pluralization bug in `resources/dependencies.php` (`filesystems`).
 
 ## Complexity Tracking
 
