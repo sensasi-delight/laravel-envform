@@ -44,9 +44,9 @@ final class WizardIntegrationTest extends TestCase
         // We expect that DB_CACHE_LOCK_TABLE will be suggested as "my_table_lock"
         // because DB_CACHE_TABLE is set to "my_table" in .env.
 
-        $prompt = function (string $key, string $progress, bool $isTrigger = false) {
+        $prompt = function (string $key, string $progress, bool $isTrigger = false, bool $hasPrevious = true) {
             $prefix = $isTrigger ? '🚀' : '⚙️';
-            $navigation = (PHP_OS_FAMILY !== 'Windows') ? ' (Ctrl+C: Back)' : '';
+            $navigation = ($hasPrevious && PHP_OS_FAMILY !== 'Windows') ? " \e[2m(Ctrl+C: Back)\e[22m" : '';
 
             return "{$prefix} {$progress} {$key}{$navigation}";
         };
@@ -57,7 +57,8 @@ final class WizardIntegrationTest extends TestCase
             // Select cache.php
             ->expectsQuestion('📂 Select a configuration file to configure', 'cache')
             // It should ask for all three variables in the group.
-            ->expectsQuestion($prompt('CACHE_STORE', '[1/3]', true), 'database')
+            // Sorted by key: CACHE_STORE (1), DB_CACHE_LOCK_TABLE (2), DB_CACHE_TABLE (3)
+            ->expectsQuestion($prompt('CACHE_STORE', '[1/3]', true, false), 'database')
             ->expectsQuestion($prompt('DB_CACHE_LOCK_TABLE', '[2/3]'), 'my_table_lock')
             ->expectsQuestion($prompt('DB_CACHE_TABLE', '[3/3]'), 'my_table')
             ->expectsQuestion('📂 Select a configuration file to configure', 'exit')
