@@ -59,6 +59,13 @@ class TuiNavigationTest extends TestCase
 
         $optionResolver = new OptionResolver\Service($registry);
 
+        $valueResolver = new \EnvForm\ValueResolver\Service(
+            $dotEnv,
+            $this->formValue,
+            $registry,
+            new \EnvForm\ValueResolver\Repository([$hintPath]) // resources directory
+        );
+
         $this->wizard = new WizardService(
             $dotEnv,
             $this->formValue,
@@ -66,7 +73,8 @@ class TuiNavigationTest extends TestCase
             $registry,
             $shouldAsk,
             $keyGen,
-            $optionResolver
+            $optionResolver,
+            $valueResolver
         );
 
         Prompt::fallbackWhen(true);

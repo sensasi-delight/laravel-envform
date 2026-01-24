@@ -35,6 +35,7 @@ final class Service
         private readonly ShouldAsk\Service $shouldAsk,
         private readonly KeyGenerator\Service $keyGenerator,
         private readonly OptionResolver\Service $optionResolver,
+        private readonly \EnvForm\ValueResolver\Service $valueResolver,
     ) {}
 
     final public function run(): void
@@ -224,11 +225,7 @@ final class Service
             return $strictVal;
         }
 
-        $configKey = $envVar->configKeys->first();
-        $currentValue = $this->formValue->get($envVar->key)
-            ?? ($configKey ? $this->registry->getStaticValue($configKey) : null)
-            ?? $this->dotEnv->getExistingValue($envVar->key);
-
+        $initial = $this->valueResolver->resolve($envVar->key);
         $defaultValue = $envVar->default;
 
         $prefix = $envVar->isTrigger ? '🚀 ' : '⚙️ ';
@@ -246,8 +243,6 @@ final class Service
             $displayDefault = \is_bool($defaultValue) ? ($defaultValue ? 'true' : 'false') : (string) $defaultValue;
             $hint .= " (Default: {$displayDefault})";
         }
-
-        $initial = $currentValue ?? $defaultValue;
 
         if (\is_bool($defaultValue)) {
             $boolInitial = $initial;
@@ -293,8 +288,7 @@ final class Service
             return false;
         }
 
-        $currentValue = $this->formValue->get($envVar->key)
-            ?? $this->dotEnv->getExistingValue($envVar->key);
+        $currentValue = $this->valueResolver->resolve($envVar->key);
 
         $prefix = '🚀 ';
         $progress = $this->getVisibleProgressLabel($envVar);
@@ -404,12 +398,7 @@ final class Service
 
     ): mixed {
 
-        $defaultValue = $this->formValue->get($envVar->key)
-
-            ?? $this->dotEnv->getExistingValue($envVar->key)
-
-            ?? $envVar->default
-
+        $defaultValue = $this->valueResolver->resolve($envVar->key)
             ?? $additionalDefaultOption;
 
         $hint = $this->hint->get($envVar->configKeys[0]);

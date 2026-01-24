@@ -38,6 +38,13 @@ final class EnvFormServiceProvider extends ServiceProvider
         $this->app->bind(KeyGenerator\Service::class);
         $this->app->bind(OptionResolver\Service::class);
 
+        // #### ValueResolver #####
+
+        $this->app->singleton(ValueResolver\Repository::class, fn () => new ValueResolver\Repository([
+            __DIR__.'/../resources',
+        ]));
+        $this->app->singleton(ValueResolver\Service::class);
+
         // #### ShouldAsk #####
 
         $this->app->singleton(ShouldAsk\Service::class);
