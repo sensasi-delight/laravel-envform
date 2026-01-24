@@ -9,7 +9,7 @@ Resolves available options for a given configuration key.
 - **Output**: Array of options where key is the display label and value is the actual value.
 - **Logic**:
     1. Fetch keys from `Registry\Service`.
-    2. Apply blacklist filter (`client`, `options`, `clusters`).
+    2. Apply metadata blacklist filter (`client`, `options`, `clusters`).
     3. Sort keys alphabetically.
     4. Return options.
 

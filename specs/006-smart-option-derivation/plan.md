@@ -51,7 +51,8 @@ src/
 ├── OptionResolver/      # Enhanced for smart filtering and nullability
 ├── Registry/            # Provides AST-based config keys
 ├── Wizard/              # Updated to handle "back" on empty arrays
-└── Hint/                # Used for explicit nullability overrides
+├── Hint/                # Used for explicit nullability overrides
+└── ValueResolver/       # Updated to handle null value mapping correctly
 ```
 
 **Structure Decision**: Enhancements focused on `OptionResolver` and `Wizard` services to integrate smart selection logic.
