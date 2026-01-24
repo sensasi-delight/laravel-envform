@@ -47,6 +47,7 @@ With **EnvForm**, you get the best of both worlds: a lean config and a fully-doc
   - Automatically suggests generating `APP_KEY` if missing.
   - Detects available database/queue connections for dropdown selection.
   - Handles Boolean values (`true`/`false`) with intuitive toggles.
+- **🧬 Implicit Default Detection**: Surfaces "magic" defaults that Laravel calculates on the fly (e.g., `DB_CACHE_LOCK_TABLE` derived from `DB_CACHE_TABLE`) making them explicit in your configuration.
 - **🛡️ Safe**: Checks before overwriting existing files and preserves your existing `.env` values when editing.
 - **📂 Organized**: Groups variables by their config file (e.g., `database`, `app`, `services`) for logical setup.
 

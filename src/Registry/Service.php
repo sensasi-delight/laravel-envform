@@ -7,7 +7,7 @@ namespace EnvForm\Registry;
 use EnvForm\DTO\EnvVar;
 use Illuminate\Support\Collection;
 
-final readonly class Service
+class Service
 {
     /** @var Collection<int, EnvVar> */
     private Collection $vars;

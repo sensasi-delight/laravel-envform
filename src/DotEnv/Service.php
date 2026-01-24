@@ -22,7 +22,7 @@ class Service
     /** @var Collection<string, string> */
     private ?Collection $existingValues = null;
 
-    final public function __construct(
+    public function __construct(
         private readonly FormValue\Service $formValue,
         private readonly Registry\Service $registry,
         private readonly ShouldAsk\Service $shouldAsk,
@@ -30,18 +30,18 @@ class Service
         private readonly Formatter $formatter
     ) {}
 
-    final public function setTargetFile(string $filename): void
+    public function setTargetFile(string $filename): void
     {
         $this->targetFile = $filename;
         $this->existingValues = null;
     }
 
-    final public function getTargetFile(): string
+    public function getTargetFile(): string
     {
         return $this->targetFile;
     }
 
-    final public function getExistingValue(string $key): ?string
+    public function getExistingValue(string $key): ?string
     {
         $this->ensureLoaded();
 
@@ -54,7 +54,7 @@ class Service
     /**
      * @return Collection<string, string>
      */
-    final public function getExistingValues(): Collection
+    public function getExistingValues(): Collection
     {
         $this->ensureLoaded();
 
@@ -64,7 +64,7 @@ class Service
         return $existing;
     }
 
-    final public function getCount(): int
+    public function getCount(): int
     {
         $this->ensureLoaded();
 
@@ -126,7 +126,7 @@ class Service
     /**
      * @return array<string, string>
      */
-    final public function getEnvFileOptions(
+    public function getEnvFileOptions(
         ?string $basePath = null
     ): array {
         $basePath = $basePath ?: App::basePath();
