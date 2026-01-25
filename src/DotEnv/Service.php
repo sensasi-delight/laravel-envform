@@ -90,13 +90,22 @@ class Service
     /**
      * @return array<string, bool|int|string|null> [ENV_KEY => value]
      */
-    private function getFinalValues(): array
+    private function getFinalValues(ShouldAsk\Service $shouldAsk): array
     {
         $final = [];
         foreach ($this->registry->all() as $var) {
             $key = $var->key;
 
-            $final[$key] = $this->formValue->get($key)
+            $formValue = $this->formValue->get($key);
+            $hasExisting = $this->hasExistingValue($key);
+            $isVisible = $shouldAsk->isVisible($var);
+
+            // Skip if not visible AND not in existing .env AND not filled by user
+            if (! $isVisible && ! $hasExisting && $formValue === null) {
+                continue;
+            }
+
+            $final[$key] = $formValue
                 ?? $this->getExistingValue($key)
                 ?? $var->default;
         }
@@ -116,7 +125,7 @@ class Service
             ])->toArray();
 
         $content = $this->formatter->format(
-            $this->getFinalValues(),
+            $this->getFinalValues($shouldAsk),
             $metadata,
         );
 
