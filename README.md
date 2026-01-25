@@ -1,3 +1,5 @@
+![preview](https://github.com/user-attachments/assets/3b5732ed-d30e-40c5-b6f2-0e67c2cfc925)
+
 # 🧙‍♂️ Laravel EnvForm
 
 ![Tests](https://github.com/sensasi-delight/laravel-envform/actions/workflows/tests.yml/badge.svg)
