@@ -11,6 +11,8 @@ use function Laravel\Prompts\note;
 
 final class Header
 {
+    private static ?string $version = null;
+
     private const ART = <<<'EOT'
   ______            ______
  |  ____|          |  ____|
@@ -26,17 +28,41 @@ EOT;
 
         $width = (new Terminal)->getWidth();
         $art = self::getAsciiArt();
-        $art = self::truncate($art, $width);
+        $version = self::getVersion();
 
-        if (self::hasColorSupport()) {
-            $art = "\e[35m".$art."\e[0m";
+        if ($width > 50) {
+            if (self::hasColorSupport()) {
+                $art = "\e[35m".$art."\e[0m";
+            }
+
+            $output = $art.PHP_EOL."  \e[2m".$version."\e[0m";
+        } else {
+            $output = self::truncate($art, $width);
+            $output .= PHP_EOL."\e[2m".$version."\e[0m";
         }
 
-        fwrite(STDOUT, $art.PHP_EOL.PHP_EOL);
+        fwrite(STDOUT, $output.PHP_EOL.PHP_EOL);
 
         if ($subtitle) {
             note($subtitle);
         }
+    }
+
+    private static function getVersion(): string
+    {
+        if (self::$version !== null) {
+            return self::$version;
+        }
+
+        $composerPath = __DIR__.'/../../../composer.json';
+
+        if (! file_exists($composerPath)) {
+            return self::$version = 'v0.x';
+        }
+
+        $composer = json_decode((string) file_get_contents($composerPath), true);
+
+        return self::$version = 'v'.($composer['version'] ?? '0.x');
     }
 
     private static function getAsciiArt(): string
