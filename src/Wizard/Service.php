@@ -286,9 +286,9 @@ final class Service
         return $res;
     }
 
-    private function handleAppKey(EnvVar $envVar, NavigationSession $session): mixed
+    private function handleAppKey(EnvVar $envVar, NavigationSession $session): string|bool|null
     {
-        if ($envVar->key !== 'APP_KEY') {
+        if (! $envVar->configKeys->contains('app.key')) {
             return false;
         }
 
