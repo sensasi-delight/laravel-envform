@@ -58,10 +58,22 @@ final class PriorityTest extends ValueResolverTestCase
     final public function test_form_value_has_highest_priority(): void
     {
         $key = 'some.key';
+        $envVar = new \EnvForm\DTO\EnvVar(
+            configKeys: collect([$key]),
+            default: 'config_value',
+            group: 'app.php',
+            isTrigger: false,
+            key: 'SOME_KEY'
+        );
+
+        $this->registry->expects($this->once())
+            ->method('find')
+            ->with($key)
+            ->willReturn($envVar);
 
         $this->formValue->expects($this->once())
             ->method('get')
-            ->with($key)
+            ->with('SOME_KEY')
             ->willReturn('form_value');
 
         // Other sources shouldn't even be called if FormValue is found
@@ -77,15 +89,27 @@ final class PriorityTest extends ValueResolverTestCase
     final public function test_dotenv_has_priority_over_config_and_implicit(): void
     {
         $key = 'some.key';
+        $envVar = new \EnvForm\DTO\EnvVar(
+            configKeys: collect([$key]),
+            default: 'config_value',
+            group: 'app.php',
+            isTrigger: false,
+            key: 'SOME_KEY'
+        );
+
+        $this->registry->expects($this->once())
+            ->method('find')
+            ->with($key)
+            ->willReturn($envVar);
 
         $this->formValue->expects($this->once())
             ->method('get')
-            ->with($key)
+            ->with('SOME_KEY')
             ->willReturn(null);
 
         $this->dotEnv->expects($this->once())
             ->method('getExistingValue')
-            ->with($key)
+            ->with('SOME_KEY')
             ->willReturn('dotenv_value');
 
         $this->registry->expects($this->never())->method('getStaticValue');
@@ -99,15 +123,27 @@ final class PriorityTest extends ValueResolverTestCase
     final public function test_config_default_has_priority_over_implicit(): void
     {
         $key = 'some.key';
+        $envVar = new \EnvForm\DTO\EnvVar(
+            configKeys: collect([$key]),
+            default: 'config_value',
+            group: 'app.php',
+            isTrigger: false,
+            key: 'SOME_KEY'
+        );
+
+        $this->registry->expects($this->once())
+            ->method('find')
+            ->with($key)
+            ->willReturn($envVar);
 
         $this->formValue->expects($this->once())
             ->method('get')
-            ->with($key)
+            ->with('SOME_KEY')
             ->willReturn(null);
 
         $this->dotEnv->expects($this->once())
             ->method('getExistingValue')
-            ->with($key)
+            ->with('SOME_KEY')
             ->willReturn(null);
 
         $this->registry->expects($this->once())
