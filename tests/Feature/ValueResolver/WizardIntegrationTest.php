@@ -53,7 +53,7 @@ final class WizardIntegrationTest extends TestCase
 
         /** @phpstan-ignore method.nonObject */
         $this->artisan('envform')
-            ->expectsQuestion('📂 Which environment file do you want to manage?', '.env')
+            ->expectsQuestion('📂 Which .env file do you want to manage?', '.env')
             // Select cache.php
             ->expectsQuestion('📂 Select a configuration file to configure', 'cache')
             // It should ask for all three variables in the group.

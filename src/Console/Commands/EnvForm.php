@@ -71,14 +71,15 @@ final class EnvForm extends Command
 
     private function selectEnvFile(): string
     {
-        $options = $this->dotEnv->getEnvFileOptions();
-
-        $options['new'] = '➕ Create New File...';
+        $options = [
+            'new' => '➕ Create New File...',
+            ...$this->dotEnv->getEnvFileOptions(),
+        ];
 
         $choice = select(
-            label: '📂 Which environment file do you want to manage?',
+            label: '📂 Which .env file do you want to manage?',
             options: $options,
-            default: '.env'
+            default: 'new'
         );
 
         if ($choice === 'new') {
