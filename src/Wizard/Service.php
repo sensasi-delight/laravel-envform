@@ -307,7 +307,7 @@ final class Service
             new ConfirmPrompt(
                 label: "{$prefix} {$progress} Do you want to generate/regenerate APP_KEY?{$navigationLabel}",
                 default: empty($currentValue),
-                hint: $currentValue,
+                hint: $currentValue ?? '',
             ),
             $session,
             $envVar
