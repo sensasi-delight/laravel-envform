@@ -19,7 +19,7 @@ class Service
 {
     private string $targetFile = '.env';
 
-    /** @var Collection<string, string> */
+    /** @var Collection<string, string> [ENV_KEY => value] */
     private ?Collection $existingValues = null;
 
     public function __construct(
@@ -40,14 +40,11 @@ class Service
         return $this->targetFile;
     }
 
-    public function getExistingValue(string $key): ?string
+    public function getExistingValue(string $envKey): ?string
     {
         $this->ensureLoaded();
 
-        /** @var Collection<string, string> $existing */
-        $existing = $this->existingValues;
-
-        return $existing->get($key);
+        return $this->existingValues?->get($envKey);
     }
 
     public function hasExistingValue(string $key): bool
