@@ -24,6 +24,7 @@ return [
     ],
     'aws' => [
         'activators' => [
+            'cache.default' => ['dynamodb'],
             'queue.default' => ['sqs'],
             'filesystems.default' => ['s3'],
             'mail.default' => ['ses'],

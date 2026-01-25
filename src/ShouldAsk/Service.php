@@ -88,67 +88,60 @@ final class Service
 
     private function shouldBeAsked(EnvVar $envVar): bool
     {
-        // 1. Service Relevance Guard
-        // A variable is relevant if AT LEAST ONE of its config keys belongs to an active service
-        // or no service at all (generic).
-        $hasRelevantKey = false;
         foreach ($envVar->configKeys as $configKey) {
-            if ($this->serviceDetection->isKeyRelevant($configKey)) {
-                $hasRelevantKey = true;
-                break;
+            // 1. Check Service Relevance
+            if (! $this->serviceDetection->isKeyRelevant($configKey)) {
+                continue;
+            }
+
+            // 2. Check Dependency Rules for this specific relevant key
+            if ($this->satisfiesDependencyRulesForKey($configKey)) {
+                return true;
             }
         }
 
-        if (! $hasRelevantKey) {
-            return false;
-        }
-
-        // 2. Dependency Rules
-        return $this->satisfiesDependencyRules($envVar);
+        return false;
     }
 
     /**
      * @throws \Exception
      */
-    private function satisfiesDependencyRules(EnvVar $envVar): bool
+    private function satisfiesDependencyRulesForKey(string $configKey): bool
     {
         $dependencyRules = $this->repository->getMap();
-        $hasGoverningPatterns = false;
+        $isGoverned = false;
 
-        foreach ($envVar->configKeys as $configKey) {
-            foreach ($dependencyRules as $pattern => $triggerConfigKey) {
-                if (fnmatch($pattern, $configKey)) {
-                    $hasGoverningPatterns = true;
+        foreach ($dependencyRules as $pattern => $triggerConfigKey) {
+            if (fnmatch($pattern, $configKey)) {
+                $isGoverned = true;
 
-                    $triggerEnvVar = $this->registry->find($triggerConfigKey);
+                $triggerEnvVar = $this->registry->find($triggerConfigKey);
+                if (! $triggerEnvVar) {
+                    continue;
+                }
 
-                    if (! $triggerEnvVar) {
-                        continue;
-                    }
+                $activeValue = $this->formValue->get($triggerEnvVar->key)
+                    ?? $this->existingValues->get($triggerEnvVar->key)
+                    ?? $this->registry->getStaticValue($triggerConfigKey);
 
-                    $activeValue = $this->formValue->get($triggerEnvVar->key)
-                        ?? $this->existingValues->get($triggerEnvVar->key)
-                        ?? $this->registry->getStaticValue($triggerConfigKey);
+                if (! $activeValue) {
+                    continue;
+                }
 
-                    if (! $activeValue) {
-                        continue;
-                    }
+                $requiredConfigPattern = str_replace(
+                    '*',
+                    (string) $activeValue.'.*',
+                    $pattern
+                );
 
-                    $requiredConfigPattern = str_replace(
-                        '*',
-                        (string) $activeValue.'.*',
-                        $pattern
-                    );
-
-                    if (fnmatch($requiredConfigPattern, $configKey)) {
-                        return true;
-                    }
+                if (fnmatch($requiredConfigPattern, $configKey)) {
+                    return true;
                 }
             }
         }
 
-        // If it matches some patterns but none were satisfied, it's hidden.
-        // If it matches NO patterns, it's visible.
-        return ! $hasGoverningPatterns;
+        // If no dependency rules govern this key, it's satisfied by default.
+        // If it IS governed but none of the rules matched above, it's NOT satisfied.
+        return ! $isGoverned;
     }
 }
