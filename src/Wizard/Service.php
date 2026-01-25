@@ -95,7 +95,7 @@ final class Service
                 STR_PAD_LEFT
             );
 
-            $status = ($filled >= $envCount) ? '✅' : "({$filled}/{$envCount})";
+            $status = (($filled >= $envCount) ? '✅' : '🔲')." ({$filled}/{$envCount})";
 
             $selectValue = str_replace(
                 '.php',
@@ -114,6 +114,7 @@ final class Service
     {
         $vars = $this->registry->all()
             ->filter(fn (EnvVar $v) => $v->group === $groupName)
+            ->sortBy(fn (EnvVar $v) => ($v->isTrigger ? 0 : 1).$v->key)
             ->values();
 
         if ($vars->isEmpty()) {
@@ -177,9 +178,9 @@ final class Service
                 function () use ($envVar, $session, $index) {
                     $session->currentIndex = $index;
 
-                    return $this->renderStep($envVar, $session);
+                    return $this->renderStep($envVar, $session) ?? 'null';
                 },
-                name: $envVar->key
+                $envVar->key
             );
         }
 
@@ -286,9 +287,9 @@ final class Service
         return $res;
     }
 
-    private function handleAppKey(EnvVar $envVar, NavigationSession $session): mixed
+    private function handleAppKey(EnvVar $envVar, NavigationSession $session): string|bool|null
     {
-        if ($envVar->key !== 'APP_KEY') {
+        if (! $envVar->configKeys->contains('app.key')) {
             return false;
         }
 
@@ -305,7 +306,8 @@ final class Service
         $answer = $this->runPromptWithBackSupport(
             new ConfirmPrompt(
                 label: "{$prefix} {$progress} Do you want to generate/regenerate APP_KEY?{$navigationLabel}",
-                default: empty($currentValue)
+                default: empty($currentValue),
+                hint: $currentValue ?? '',
             ),
             $session,
             $envVar
@@ -367,23 +369,20 @@ final class Service
 
     private function getVisibleProgressLabel(EnvVar $currentVar): string
     {
-
-        $visibleVars = $this->shouldAsk->getVisibleVariablesByGroup($currentVar->group)->values();
+        $visibleVars = $this->shouldAsk
+            ->getVisibleVariablesByGroup($currentVar->group)
+            ->values();
 
         $index = $visibleVars->search(fn ($v) => $v->key === $currentVar->key);
 
         if ($index === false) {
-
             return '';
-
         }
 
         $current = (int) $index + 1;
-
         $total = $visibleVars->count();
 
         return "[{$current}/{$total}]";
-
     }
 
     /**

@@ -31,7 +31,7 @@ class EnvFormCommandTest extends TestCase
     {
         /** @phpstan-ignore method.nonObject */
         $this->artisan('envform', ['--dry-run' => true])
-            ->expectsQuestion('📂 Which environment file do you want to manage?', '.env')
+            ->expectsQuestion('📂 Which .env file do you want to manage?', '.env')
             ->expectsQuestion('📂 Select a configuration file to configure', 'exit')
             ->assertExitCode(0);
     }

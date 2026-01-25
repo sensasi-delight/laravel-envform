@@ -39,6 +39,7 @@ final class EnvForm extends Command
         private readonly Registry\Service $registry,
         private readonly \EnvForm\ShouldAsk\Service $shouldAsk,
         private readonly Wizard\Service $wizard,
+        private readonly \EnvForm\FormValue\Service $formValue,
     ) {
         parent::__construct();
     }
@@ -70,14 +71,15 @@ final class EnvForm extends Command
 
     private function selectEnvFile(): string
     {
-        $options = $this->dotEnv->getEnvFileOptions();
-
-        $options['new'] = '➕ Create New File...';
+        $options = [
+            'new' => '➕ Create New File...',
+            ...$this->dotEnv->getEnvFileOptions(),
+        ];
 
         $choice = select(
-            label: '📂 Which environment file do you want to manage?',
+            label: '📂 Which .env file do you want to manage?',
             options: $options,
-            default: '.env'
+            default: 'new'
         );
 
         if ($choice === 'new') {
@@ -110,6 +112,8 @@ final class EnvForm extends Command
         while (true) {
             Header::render();
 
+            $this->displayDefaultValueNotice();
+
             $filename = text(
                 label: '📄 Enter the output filename',
                 default: $this->dotEnv->getTargetFile(),
@@ -136,5 +140,30 @@ final class EnvForm extends Command
         info("✅ Successfully updated {$filename} file!");
 
         return self::SUCCESS;
+    }
+
+    private function displayDefaultValueNotice(): void
+    {
+        $visibleVars = $this->shouldAsk->all();
+        $defaultsToBeUsed = [];
+
+        foreach ($visibleVars as $var) {
+            $hasFormValue = $this->formValue->has($var->key);
+            $hasExistingValue = $this->dotEnv->hasExistingValue($var->key);
+
+            if (! $hasFormValue && ! $hasExistingValue) {
+                $defaultsToBeUsed[] = $var->key;
+            }
+        }
+
+        if (! empty($defaultsToBeUsed)) {
+            $count = \count($defaultsToBeUsed);
+            $list = \implode(', ', \array_slice($defaultsToBeUsed, 0, 5));
+            if ($count > 5) {
+                $list .= '... and '.($count - 5).' more';
+            }
+
+            info("📝 {$count} variables will be written using their default values because they weren't provided:\n\e[2m{$list}\e[0m");
+        }
     }
 }

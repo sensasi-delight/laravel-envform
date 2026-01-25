@@ -19,7 +19,7 @@ class Service
 {
     private string $targetFile = '.env';
 
-    /** @var Collection<string, string> */
+    /** @var Collection<string, string> [ENV_KEY => value] */
     private ?Collection $existingValues = null;
 
     public function __construct(
@@ -40,14 +40,18 @@ class Service
         return $this->targetFile;
     }
 
-    public function getExistingValue(string $key): ?string
+    public function getExistingValue(string $envKey): ?string
     {
         $this->ensureLoaded();
 
-        /** @var Collection<string, string> $existing */
-        $existing = $this->existingValues;
+        return $this->existingValues?->get($envKey);
+    }
 
-        return $existing->get($key);
+    public function hasExistingValue(string $key): bool
+    {
+        $this->ensureLoaded();
+
+        return $this->existingValues?->has($key) ?? false;
     }
 
     /**
@@ -86,13 +90,22 @@ class Service
     /**
      * @return array<string, bool|int|string|null> [ENV_KEY => value]
      */
-    private function getFinalValues(): array
+    private function getFinalValues(ShouldAsk\Service $shouldAsk): array
     {
         $final = [];
         foreach ($this->registry->all() as $var) {
             $key = $var->key;
 
-            $final[$key] = $this->formValue->get($key)
+            $formValue = $this->formValue->get($key);
+            $hasExisting = $this->hasExistingValue($key);
+            $isVisible = $shouldAsk->isVisible($var);
+
+            // Skip if not visible AND not in existing .env AND not filled by user
+            if (! $isVisible && ! $hasExisting && $formValue === null) {
+                continue;
+            }
+
+            $final[$key] = $formValue
                 ?? $this->getExistingValue($key)
                 ?? $var->default;
         }
@@ -112,7 +125,7 @@ class Service
             ])->toArray();
 
         $content = $this->formatter->format(
-            $this->getFinalValues(),
+            $this->getFinalValues($shouldAsk),
             $metadata,
         );
 

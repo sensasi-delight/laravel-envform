@@ -24,6 +24,7 @@ return [
     ],
     'aws' => [
         'activators' => [
+            'cache.default' => ['dynamodb'],
             'queue.default' => ['sqs'],
             'filesystems.default' => ['s3'],
             'mail.default' => ['ses'],
@@ -59,6 +60,63 @@ return [
         ],
         'patterns' => [
             'services.postmark.*',
+        ],
+    ],
+    'slack' => [
+        'activators' => [
+            'logging.default' => ['slack'],
+        ],
+        'master_keys' => [
+            'services.slack.url',
+        ],
+        'patterns' => [
+            'services.slack.*',
+            'logging.channels.slack.*',
+        ],
+    ],
+    'resend' => [
+        'activators' => [
+            'mail.default' => ['resend'],
+        ],
+        'master_keys' => [
+            'services.resend.key',
+        ],
+        'patterns' => [
+            'services.resend.*',
+        ],
+    ],
+    'memcached' => [
+        'activators' => [
+            'cache.default' => ['memcached'],
+            'session.driver' => ['memcached'],
+        ],
+        'master_keys' => [
+            'cache.stores.memcached.servers.0.host',
+        ],
+        'patterns' => [
+            'cache.stores.memcached.*',
+        ],
+    ],
+    'beanstalkd' => [
+        'activators' => [
+            'queue.default' => ['beanstalkd'],
+        ],
+        'master_keys' => [
+            'queue.connections.beanstalkd.host',
+        ],
+        'patterns' => [
+            'queue.connections.beanstalkd.*',
+        ],
+    ],
+    'papertrail' => [
+        'activators' => [
+            'logging.default' => ['papertrail'],
+        ],
+        'master_keys' => [
+            'logging.channels.papertrail.handler_with.host',
+        ],
+        'patterns' => [
+            'logging.channels.papertrail.*',
         ],
     ],
 ];

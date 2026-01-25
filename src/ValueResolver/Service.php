@@ -50,7 +50,11 @@ final class Service implements ValueResolverInterface
      */
     final public function resolve(string $key): mixed
     {
-        if (\in_array($key, $this->resolutionStack, true)) {
+        if (\in_array(
+            $key,
+            $this->resolutionStack,
+            true
+        )) {
             throw new LogicException("Circular dependency detected for key: {$key}");
         }
 
@@ -74,7 +78,15 @@ final class Service implements ValueResolverInterface
             }
 
             // 3. Config Default (Registry)
-            $configDefault = $this->registry->getStaticValue($key);
+            $configDefault = null;
+
+            foreach ($envVar->configKeys ?? [] as $ck) {
+                $configDefault = $this->registry->getStaticValue($ck);
+                if ($configDefault !== null) {
+                    break;
+                }
+            }
+
             if ($configDefault !== null) {
                 return $configDefault;
             }

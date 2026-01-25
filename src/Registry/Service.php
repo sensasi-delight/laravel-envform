@@ -56,9 +56,12 @@ class Service
         return $this->vars;
     }
 
-    public function find(string $configKey): ?EnvVar
+    /**
+     * @param  string  $key  Dot-notation config path or Env Key
+     */
+    public function find(string $key): ?EnvVar
     {
-        return $this->vars->firstWhere(fn ($var) => $var->configKeys->contains($configKey));
+        return $this->vars->firstWhere(fn ($var) => $var->configKeys->contains($key) || $var->key === $key);
     }
 
     /** @return Collection<int, string> */

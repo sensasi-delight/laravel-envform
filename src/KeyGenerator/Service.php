@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace EnvForm\KeyGenerator;
 
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Encryption\Encrypter;
+use Illuminate\Support\Facades\Config;
 
 readonly class Service
 {
     /**
-     * Generate a new application key.
+     * Generate a new application key using Laravel's internal logic.
      */
     public function generate(): string
     {
-        Artisan::call('key:generate', ['--show' => true]);
+        $cipher = Config::get('app.cipher', 'AES-256-CBC');
 
-        return trim(Artisan::output());
+        return 'base64:'.base64_encode(Encrypter::generateKey($cipher));
     }
 }

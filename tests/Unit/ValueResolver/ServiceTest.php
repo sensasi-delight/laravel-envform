@@ -58,15 +58,27 @@ final class ServiceTest extends ValueResolverTestCase
     final public function test_it_resolves_via_implicit_rule_when_other_sources_empty(): void
     {
         $key = 'some.key';
+        $envVar = new \EnvForm\DTO\EnvVar(
+            configKeys: collect([$key]),
+            default: 'config_value',
+            group: 'app.php',
+            isTrigger: false,
+            key: 'SOME_KEY'
+        );
+
+        $this->registry->expects($this->once())
+            ->method('find')
+            ->with($key)
+            ->willReturn($envVar);
 
         $this->formValue->expects($this->once())
             ->method('get')
-            ->with($key)
+            ->with('SOME_KEY')
             ->willReturn(null);
 
         $this->dotEnv->expects($this->once())
             ->method('getExistingValue')
-            ->with($key)
+            ->with('SOME_KEY')
             ->willReturn(null);
 
         $this->registry->expects($this->once())
