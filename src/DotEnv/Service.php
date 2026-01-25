@@ -50,6 +50,13 @@ class Service
         return $existing->get($key);
     }
 
+    public function hasExistingValue(string $key): bool
+    {
+        $this->ensureLoaded();
+
+        return $this->existingValues?->has($key) ?? false;
+    }
+
     /**
      * @return Collection<string, string>
      */

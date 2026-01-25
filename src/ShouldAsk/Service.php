@@ -61,6 +61,14 @@ final class Service
         return $this->visibleVariables->contains(fn (EnvVar $v) => $v->key === $envVar->key);
     }
 
+    /**
+     * @return Collection<int, EnvVar>
+     */
+    final public function all(): Collection
+    {
+        return $this->visibleVariables;
+    }
+
     final public function countVisible(?string $group = null): int
     {
         return $group
