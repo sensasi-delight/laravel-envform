@@ -178,7 +178,7 @@ final class Service
                 function () use ($envVar, $session, $index) {
                     $session->currentIndex = $index;
 
-                    return $this->renderStep($envVar, $session);
+                    return $this->renderStep($envVar, $session) ?? 'null';
                 },
                 $envVar->key
             );
