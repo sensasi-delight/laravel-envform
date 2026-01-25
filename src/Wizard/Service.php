@@ -114,6 +114,7 @@ final class Service
     {
         $vars = $this->registry->all()
             ->filter(fn (EnvVar $v) => $v->group === $groupName)
+            ->sortBy(fn (EnvVar $v) => ($v->isTrigger ? 0 : 1).$v->key)
             ->values();
 
         if ($vars->isEmpty()) {
@@ -179,7 +180,7 @@ final class Service
 
                     return $this->renderStep($envVar, $session);
                 },
-                name: $envVar->key
+                $envVar->key
             );
         }
 
@@ -367,23 +368,20 @@ final class Service
 
     private function getVisibleProgressLabel(EnvVar $currentVar): string
     {
-
-        $visibleVars = $this->shouldAsk->getVisibleVariablesByGroup($currentVar->group)->values();
+        $visibleVars = $this->shouldAsk
+            ->getVisibleVariablesByGroup($currentVar->group)
+            ->values();
 
         $index = $visibleVars->search(fn ($v) => $v->key === $currentVar->key);
 
         if ($index === false) {
-
             return '';
-
         }
 
         $current = (int) $index + 1;
-
         $total = $visibleVars->count();
 
         return "[{$current}/{$total}]";
-
     }
 
     /**

@@ -83,7 +83,7 @@ final class Service
     {
         return $this->visibleVariables->filter(
             fn (EnvVar $v) => $v->group === $group
-        );
+        )->sortBy(fn (EnvVar $v) => ($v->isTrigger ? 0 : 1).$v->key);
     }
 
     private function shouldBeAsked(EnvVar $envVar): bool
