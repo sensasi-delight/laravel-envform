@@ -19,7 +19,7 @@ final readonly class Service
         'filesystem.default' => 'filesystem.disks',
         'logging.default' => 'logging.channels',
         'mail.default' => 'mail.mailers',
-        'queue.default' => 'queue.stores',
+        'queue.default' => 'queue.connections',
         'cache.stores.redis.connection' => 'database.redis',
         'cache.stores.redis.lock_connection' => 'database.redis',
     ];
