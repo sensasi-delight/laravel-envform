@@ -95,7 +95,7 @@ final class Service
                 STR_PAD_LEFT
             );
 
-            $status = ($filled >= $envCount) ? '✅' : "({$filled}/{$envCount})";
+            $status = (($filled >= $envCount) ? '✅' : '🔲')." ({$filled}/{$envCount})";
 
             $selectValue = str_replace(
                 '.php',
@@ -306,7 +306,8 @@ final class Service
         $answer = $this->runPromptWithBackSupport(
             new ConfirmPrompt(
                 label: "{$prefix} {$progress} Do you want to generate/regenerate APP_KEY?{$navigationLabel}",
-                default: empty($currentValue)
+                default: empty($currentValue),
+                hint: $currentValue,
             ),
             $session,
             $envVar
