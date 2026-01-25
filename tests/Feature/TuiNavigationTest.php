@@ -149,23 +149,24 @@ class TuiNavigationTest extends TestCase
     public function test_it_re_evaluates_dependencies_dynamically(): void
     {
         $this->answerQueue = [
-            'database',    // Select group
-            'sqlite',      // DB_CONNECTION
-            'test.sqlite', // DB_DATABASE
-            Key::CTRL_C,   // At DB_FOREIGN_KEYS, press Esc
-            Key::CTRL_C,   // At DB_DATABASE, press Esc
-            'mysql',       // Change DB_CONNECTION to mysql
-            '',            // DB_URL
-            '127.0.0.1',   // DB_HOST
-            '3306',        // DB_PORT
-            'database_name', // DB_DATABASE
-            'root',        // DB_USERNAME
-            '',            // DB_PASSWORD
-            '',            // DB_SOCKET
-            'utf8mb4',     // DB_CHARSET
+            'database',      // Select group
+            'sqlite',        // DB_CONNECTION (Trigger)
+            'test.sqlite',   // DB_DATABASE
+            Key::CTRL_C,     // At DB_FOREIGN_KEYS, press Esc
+            Key::CTRL_C,     // At DB_DATABASE, press Esc
+            'mysql',         // Change DB_CONNECTION to mysql (Trigger)
+            'utf8mb4',       // DB_CHARSET
             'utf8mb4_unicode_ci', // DB_COLLATION
-            'exit',        // Back to Menu
-            'exit',        // Save & Exit
+            'database_name', // DB_DATABASE
+            true,            // DB_FOREIGN_KEYS
+            '127.0.0.1',     // DB_HOST
+            '',              // DB_PASSWORD
+            '3306',          // DB_PORT
+            '',              // DB_SOCKET
+            '',              // DB_URL
+            'root',          // DB_USERNAME
+            'exit',          // Back to Menu
+            'exit',          // Save & Exit
         ];
 
         $this->wizard->run();
